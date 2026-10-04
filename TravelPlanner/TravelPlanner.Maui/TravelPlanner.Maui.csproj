@@ -71,4 +71,8 @@
 	  <Folder Include="Views\" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\TravelPlanner.Core\TravelPlanner.Core.csproj" />
+	</ItemGroup>
+
 </Project>
