@@ -1,4 +1,5 @@
-
+using Microsoft.EntityFrameworkCore;
+using TravelPlanner.Api.Data;
 namespace TravelPlanner.Api
 {
     public class Program
@@ -10,6 +11,16 @@ namespace TravelPlanner.Api
             // Add services to the container.
 
             builder.Services.AddControllers();
+
+            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseNpgsql(connectionString));
+
+            builder.Services.AddIdentityCore<ApplicationUser>()
+                .AddEntityFrameworkStores<AppDbContext>();
+
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
 
