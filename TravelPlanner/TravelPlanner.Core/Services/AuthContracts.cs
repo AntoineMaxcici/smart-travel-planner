@@ -12,6 +12,9 @@ public interface ITokenStore
 public interface IAuthApi
 {
     Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default);
+    Task<LoginResponse> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default);
+    Task ResendConfirmationAsync(ResendConfirmationRequest request, CancellationToken cancellationToken = default);
     Task<UserProfile> GetMeAsync(string token, CancellationToken cancellationToken = default);
 }
 
@@ -22,6 +25,7 @@ public interface ISessionService
     bool IsAuthenticated { get; }
     Task InitializeAsync(CancellationToken cancellationToken = default);
     Task SignInAsync(LoginRequest request, CancellationToken cancellationToken = default);
+    Task ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default);
     Task SignOutAsync();
     Task<string?> GetAccessTokenAsync();
     Task InvalidateAsync(string rejectedToken);
@@ -29,3 +33,5 @@ public interface ISessionService
 
 public sealed class AuthException(string message) : Exception(message);
 public sealed class UnauthorizedSessionException : Exception;
+/// <summary>The password was correct but the email address has not been confirmed yet. The API has sent a new code.</summary>
+public sealed class EmailNotConfirmedException(string message) : Exception(message);

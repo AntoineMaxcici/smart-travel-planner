@@ -73,10 +73,42 @@ public partial class App : Application
         }
         else
         {
-            var login = services.GetRequiredService<LoginPage>();
-            ((LoginViewModel)login.BindingContext).ErrorMessage = error;
             // Replacing the root removes the authenticated back stack after logout/expiry.
-            window.Page = login;
+            ShowLoginPage(error);
         }
+    }
+
+    private void ShowLoginPage(string? error = null)
+    {
+        if (window is null) return;
+        var login = services.GetRequiredService<LoginPage>();
+        var viewModel = (LoginViewModel)login.BindingContext;
+        viewModel.ErrorMessage = error;
+        viewModel.RegisterRequested += (_, _) => ShowRegisterPage();
+        viewModel.ConfirmEmailRequested += (_, email) => ShowConfirmEmailPage(email,
+            "Your email isn't confirmed yet. We've sent you a new code.");
+        window.Page = login;
+    }
+
+    private void ShowRegisterPage()
+    {
+        if (window is null) return;
+        var register = services.GetRequiredService<RegisterPage>();
+        var viewModel = (RegisterViewModel)register.BindingContext;
+        viewModel.LoginRequested += (_, _) => ShowLoginPage();
+        viewModel.ConfirmationRequired += (_, email) => ShowConfirmEmailPage(email);
+        window.Page = register;
+    }
+
+    private void ShowConfirmEmailPage(string email, string? info = null)
+    {
+        if (window is null) return;
+        var confirm = services.GetRequiredService<ConfirmEmailPage>();
+        var viewModel = (ConfirmEmailViewModel)confirm.BindingContext;
+        viewModel.Email = email;
+        viewModel.InfoMessage = info;
+        viewModel.LoginRequested += (_, _) => ShowLoginPage();
+        // A correct code signs the user in; OnSessionChanged then shows the AppShell.
+        window.Page = confirm;
     }
 }

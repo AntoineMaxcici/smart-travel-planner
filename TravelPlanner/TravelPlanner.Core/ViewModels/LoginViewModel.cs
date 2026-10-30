@@ -18,6 +18,18 @@ public partial class LoginViewModel(ISessionService session) : ObservableObject
     private string? errorMessage;
     public bool IsNotBusy => !IsBusy;
     public bool HasError => !string.IsNullOrWhiteSpace(ErrorMessage);
+    /// <summary>Raised when the user wants to create an account. The UI layer handles navigation.</summary>
+    public event EventHandler? RegisterRequested;
+    /// <summary>Raised with the email address when the account still needs its emailed code.</summary>
+    public event EventHandler<string>? ConfirmEmailRequested;
+
+    [RelayCommand]
+    private void GoToRegister()
+    {
+        if (IsBusy) return;
+        RegisterRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     private bool CanLogin() => !IsBusy && !string.IsNullOrWhiteSpace(Email) && !string.IsNullOrEmpty(Password);
 
     [RelayCommand(CanExecute = nameof(CanLogin))]
@@ -33,6 +45,7 @@ public partial class LoginViewModel(ISessionService session) : ObservableObject
         }
         IsBusy = true;
         try { await session.SignInAsync(request, cancellationToken); Password = ""; }
+        catch (EmailNotConfirmedException) { Password = ""; ConfirmEmailRequested?.Invoke(this, request.Email); }
         catch (AuthException ex) { ErrorMessage = ex.Message; }
         catch (HttpRequestException) { ErrorMessage = "Cannot reach TravelPlanner. Check your connection and try again."; }
         catch (OperationCanceledException) { ErrorMessage = "Sign-in timed out or was cancelled. Please try again."; }

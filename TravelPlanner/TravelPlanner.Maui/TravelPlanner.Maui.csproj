@@ -76,10 +76,6 @@
 	  <ProjectReference Include="..\TravelPlanner.Core\TravelPlanner.Core.csproj" />
 	</ItemGroup>
 
-	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.6.240923002" />
-		<PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
-	</ItemGroup>
 
 	<PropertyGroup Condition="'$(TargetFramework)' == 'net9.0-ios' and ('$(RuntimeIdentifier)' == 'iossimulator-x64' or '$(RuntimeIdentifier)' == 'iossimulator-arm64')">
 		<CodesignEntitlements>Platforms\iOS\Entitlements.Simulator.plist</CodesignEntitlements>

@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using TravelPlanner.Api.Data;
+using TravelPlanner.Api.Email;
 
 namespace TravelPlanner.Api.Tests;
 
@@ -16,6 +18,7 @@ public sealed class AuthApiFactory : WebApplicationFactory<Program>, IAsyncLifet
     public const string Email = "traveler@example.com";
     public HttpClient Client { get; private set; } = null!;
     public string UserId { get; private set; } = "";
+    public CapturingEmailSender Emails { get; } = new();
     private readonly string connectionString;
     private readonly string databaseName = "travelplanner_auth_tests_" + Guid.NewGuid().ToString("N");
 
@@ -38,8 +41,12 @@ public sealed class AuthApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             ["Jwt:Issuer"] = "TravelPlanner.Api.Tests",
             ["Jwt:Audience"] = "TravelPlanner.Client.Tests",
             ["Jwt:ExpiryMinutes"] = "60",
+            // All test requests share one client address; RegisterRateLimitTests use a low limit explicitly.
+            ["RateLimiting:Register:PermitLimit"] = "1000",
+            ["RateLimiting:EmailConfirmation:PermitLimit"] = "1000",
             ["Logging:LogLevel:Default"] = "Warning"
         }));
+        builder.ConfigureTestServices(services => services.AddSingleton<IEmailSender>(Emails));
     }
 
     public async Task InitializeAsync()

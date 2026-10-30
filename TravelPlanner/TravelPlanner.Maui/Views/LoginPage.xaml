@@ -23,6 +23,10 @@
             <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
                                SemanticProperties.Description="Signing in" />
             <Button Text="Sign in" Command="{Binding LoginCommand}" AutomationId="LoginButton" />
+            <Button Text="New here? Create an account" Command="{Binding GoToRegisterCommand}"
+                    IsEnabled="{Binding IsNotBusy}" BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                    AutomationId="GoToRegisterButton" />
         </VerticalStackLayout>
     </ScrollView>
 </ContentPage>
