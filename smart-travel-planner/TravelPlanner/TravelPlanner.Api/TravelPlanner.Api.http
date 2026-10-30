@@ -1,0 +1,35 @@
+@TravelPlanner.Api_HostAddress = http://localhost:5082
+
+GET {{TravelPlanner.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
+
+POST {{TravelPlanner.Api_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{ "email": "new-user@example.com", "password": "Str0ng!Password", "displayName": "New Traveler" }
+
+###
+
+# Use the code from the email, or from the API console if Email:Smtp:Host isn't set.
+POST {{TravelPlanner.Api_HostAddress}}/api/auth/confirm-email
+Content-Type: application/json
+
+{ "email": "new-user@example.com", "code": "123456" }
+
+###
+
+POST {{TravelPlanner.Api_HostAddress}}/api/auth/resend-confirmation
+Content-Type: application/json
+
+{ "email": "new-user@example.com" }
+
+###
+
+POST {{TravelPlanner.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{ "email": "new-user@example.com", "password": "Str0ng!Password" }
+
+###
