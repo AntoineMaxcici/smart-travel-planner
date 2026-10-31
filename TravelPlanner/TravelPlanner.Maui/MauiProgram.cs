@@ -31,8 +31,12 @@ public static class MauiProgram
             InnerHandler = new HttpClientHandler { AllowAutoRedirect = false }
         }) { BaseAddress = ApiSettings.BaseAddress, Timeout = TimeSpan.FromSeconds(20) });
         builder.Services.AddTransient<LoginViewModel>();
+        builder.Services.AddTransient<RegisterViewModel>();
+        builder.Services.AddTransient<ConfirmEmailViewModel>();
         builder.Services.AddTransient<HomeViewModel>();
         builder.Services.AddTransient<LoginPage>();
+        builder.Services.AddTransient<RegisterPage>();
+        builder.Services.AddTransient<ConfirmEmailPage>();
         builder.Services.AddTransient<MainPage>();
         builder.Services.AddTransient<AppShell>();
 #if DEBUG

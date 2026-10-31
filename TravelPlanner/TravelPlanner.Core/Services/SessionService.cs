@@ -37,12 +37,19 @@ public sealed class SessionService(IAuthApi api, ITokenStore store, TimeProvider
         SessionChanged?.Invoke(this, EventArgs.Empty);
     }
 
-    public async Task SignInAsync(LoginRequest request, CancellationToken cancellationToken = default)
+    public Task SignInAsync(LoginRequest request, CancellationToken cancellationToken = default) =>
+        StartSessionAsync(() => api.LoginAsync(request, cancellationToken), cancellationToken);
+
+    // Confirming the email code returns the same token response as login, so the user is signed in.
+    public Task ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default) =>
+        StartSessionAsync(() => api.ConfirmEmailAsync(request, cancellationToken), cancellationToken);
+
+    private async Task StartSessionAsync(Func<Task<LoginResponse>> authenticate, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken);
         try
         {
-            var response = await api.LoginAsync(request, cancellationToken);
+            var response = await authenticate();
             if (TokenExpiry.Read(response.AccessToken) is not { } expiry || expiry <= clock.GetUtcNow()
                 || string.IsNullOrWhiteSpace(response.User?.Id))
                 throw new AuthException("The server returned an invalid sign-in response.");

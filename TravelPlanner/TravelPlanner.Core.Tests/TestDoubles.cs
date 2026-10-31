@@ -45,6 +45,31 @@ internal sealed class StubAuthApi : IAuthApi
     public Action? OnGetProfile { get; set; }
     public Task<LoginResponse> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default) =>
         LoginError is null ? Task.FromResult(Response) : Task.FromException<LoginResponse>(LoginError);
+    public RegisterRequest? RegisterRequest { get; private set; }
+    public Exception? RegisterError { get; set; }
+    public Func<Task> OnRegister { get; set; } = () => Task.CompletedTask;
+    public int RegisterCalls { get; private set; }
+    public async Task<RegisterResponse> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
+    {
+        RegisterCalls++; RegisterRequest = request; await OnRegister();
+        if (RegisterError is not null) throw RegisterError;
+        return new RegisterResponse(request.Email);
+    }
+    public ConfirmEmailRequest? ConfirmRequest { get; private set; }
+    public Exception? ConfirmError { get; set; }
+    public Task<LoginResponse> ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
+    {
+        ConfirmRequest = request;
+        return ConfirmError is null ? Task.FromResult(Response) : Task.FromException<LoginResponse>(ConfirmError);
+    }
+    public ResendConfirmationRequest? ResendRequest { get; private set; }
+    public Exception? ResendError { get; set; }
+    public int ResendCalls { get; private set; }
+    public Task ResendConfirmationAsync(ResendConfirmationRequest request, CancellationToken cancellationToken = default)
+    {
+        ResendCalls++; ResendRequest = request;
+        return ResendError is null ? Task.CompletedTask : Task.FromException(ResendError);
+    }
     public Task<UserProfile> GetMeAsync(string token, CancellationToken cancellationToken = default)
     {
         ProfileCalls++;
@@ -69,6 +94,13 @@ internal sealed class StubSession : ISessionService
     public async Task SignInAsync(LoginRequest request, CancellationToken cancellationToken = default)
     {
         SignInCalls++; Request = request; await OnSignIn(); User = TestTokens.User; SessionChanged?.Invoke(this, EventArgs.Empty);
+    }
+    public ConfirmEmailRequest? ConfirmRequest { get; private set; }
+    public Func<Task> OnConfirm { get; set; } = () => Task.CompletedTask;
+    public int ConfirmCalls { get; private set; }
+    public async Task ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
+    {
+        ConfirmCalls++; ConfirmRequest = request; await OnConfirm(); User = TestTokens.User; SessionChanged?.Invoke(this, EventArgs.Empty);
     }
     public async Task SignOutAsync()
     {

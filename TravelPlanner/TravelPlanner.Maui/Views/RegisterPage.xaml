@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TravelPlanner.Core.ViewModels;assembly=TravelPlanner.Core"
+             x:Class="TravelPlanner.Maui.Views.RegisterPage"
+             x:DataType="vm:RegisterViewModel" Title="Create account">
+    <ScrollView>
+        <VerticalStackLayout Padding="28" Spacing="18" MaximumWidthRequest="440"
+                             VerticalOptions="Center" HorizontalOptions="Fill">
+            <Label Text="Create your account" FontSize="32" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
+            <Label Text="Sign up to start planning trips." FontSize="16" />
+            <Label Text="Name (optional)" />
+            <Entry Text="{Binding DisplayName}" Placeholder="Your name" Keyboard="Text"
+                   IsEnabled="{Binding IsNotBusy}" ReturnType="Next" MaxLength="100"
+                   AutomationId="RegisterDisplayName" SemanticProperties.Description="Display name" />
+            <Label Text="Email" />
+            <Entry Text="{Binding Email}" Placeholder="you@example.com" Keyboard="Email"
+                   IsEnabled="{Binding IsNotBusy}" ReturnType="Next" MaxLength="254"
+                   AutomationId="RegisterEmail" SemanticProperties.Description="Email address" />
+            <Label Text="Password" />
+            <Entry Text="{Binding Password}" Placeholder="Password" IsPassword="True"
+                   IsEnabled="{Binding IsNotBusy}" ReturnType="Next" MaxLength="1024"
+                   AutomationId="RegisterPassword" SemanticProperties.Description="Password" />
+            <Label Text="{Binding PasswordRequirements}" FontSize="13" Opacity="0.75" />
+            <Label Text="Confirm password" />
+            <Entry Text="{Binding ConfirmPassword}" Placeholder="Repeat password" IsPassword="True"
+                   IsEnabled="{Binding IsNotBusy}" ReturnType="Go" MaxLength="1024"
+                   ReturnCommand="{Binding RegisterCommand}" AutomationId="RegisterConfirmPassword"
+                   SemanticProperties.Description="Confirm password" />
+            <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}"
+                   TextColor="{AppThemeBinding Light=#B42318, Dark=#FFB4AB}" AutomationId="RegisterError" />
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               SemanticProperties.Description="Creating account" />
+            <Button Text="Create account" Command="{Binding RegisterCommand}" AutomationId="RegisterButton" />
+            <Button Text="Already have an account? Sign in" Command="{Binding GoToLoginCommand}"
+                    IsEnabled="{Binding IsNotBusy}" BackgroundColor="Transparent"
+                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
+                    AutomationId="GoToLoginButton" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>
