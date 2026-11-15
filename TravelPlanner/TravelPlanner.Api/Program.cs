@@ -10,6 +10,7 @@ using System.Threading.RateLimiting;
 using TravelPlanner.Api.Auth;
 using TravelPlanner.Api.Data;
 using TravelPlanner.Api.Email;
+using TravelPlanner.Api.Itineraries;
 using TravelPlanner.Core.Dtos;
 
 namespace TravelPlanner.Api;
@@ -120,6 +121,7 @@ public class Program
             };
         });
         builder.Services.AddScoped<JwtTokenService>();
+        builder.Services.AddGeminiItineraryGeneration();
         var app = builder.Build();
         if (app.Environment.IsDevelopment()) app.MapOpenApi();
         else app.UseHttpsRedirection();

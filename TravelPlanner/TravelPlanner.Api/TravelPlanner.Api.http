@@ -33,3 +33,19 @@ Content-Type: application/json
 { "email": "new-user@example.com", "password": "Str0ng!Password" }
 
 ###
+
+# Paste the token returned by login below. Keep the Gemini key only in API user-secrets.
+POST {{TravelPlanner.Api_HostAddress}}/api/itineraries/generate
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "destinationName": "Paris",
+  "destinationCountryCode": "FR",
+  "startDate": "2027-05-10",
+  "endDate": "2027-05-11",
+  "budgetLevel": "Medium",
+  "interests": ["art", "history", "local food"]
+}
+
+###
