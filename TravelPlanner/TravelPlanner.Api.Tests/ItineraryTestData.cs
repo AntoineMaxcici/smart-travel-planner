@@ -5,11 +5,12 @@ namespace TravelPlanner.Api.Tests;
 
 internal static class ItineraryTestData
 {
+    private static readonly DateOnly StartDate = DateOnly.FromDateTime(DateTime.UtcNow).AddMonths(1);
     public static TripInput Trip(string city = "Paris") => new()
     {
         DestinationName = city,
         DestinationCountryCode = city switch { "Tokyo" => "JP", "Beirut" => "LB", _ => "FR" },
-        StartDate = new DateOnly(2027, 5, 10), EndDate = new DateOnly(2027, 5, 11),
+        StartDate = StartDate, EndDate = StartDate.AddDays(1),
         BudgetLevel = TripBudgetLevel.Medium, Interests = ["history", "local food"]
     };
 

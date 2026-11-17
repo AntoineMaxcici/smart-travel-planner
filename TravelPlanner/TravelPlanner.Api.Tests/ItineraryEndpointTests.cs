@@ -2,10 +2,13 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using TravelPlanner.Api.Itineraries;
+using TravelPlanner.Api.Data;
 using TravelPlanner.Core.Dtos;
 using TravelPlanner.Core.Services;
 
@@ -13,10 +16,10 @@ namespace TravelPlanner.Api.Tests;
 
 public sealed class ItineraryEndpointTests(AuthApiFactory factory) : IClassFixture<AuthApiFactory>
 {
-    private async Task<HttpClient> AuthenticatedClient(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> host)
+    private async Task<HttpClient> AuthenticatedClient(Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> host, string email = AuthApiFactory.Email)
     {
         var client = host.CreateClient();
-        using var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = AuthApiFactory.Email, Password = AuthApiFactory.Password });
+        using var response = await client.PostAsJsonAsync("/api/auth/login", new LoginRequest { Email = email, Password = AuthApiFactory.Password });
         response.EnsureSuccessStatusCode();
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", (await response.Content.ReadFromJsonAsync<LoginResponse>())!.AccessToken);
         return client;
@@ -59,6 +62,8 @@ public sealed class ItineraryEndpointTests(AuthApiFactory factory) : IClassFixtu
         yield return [trip with { DestinationName = new string('x', 201) }];
         yield return [trip with { DestinationCountryCode = "France" }];
         yield return [trip with { StartDate = default }];
+        var yesterday = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
+        yield return [trip with { StartDate = yesterday, EndDate = yesterday.AddDays(1) }];
         yield return [trip with { EndDate = default }];
         yield return [trip with { EndDate = trip.StartDate.AddDays(-1) }];
         yield return [trip with { EndDate = trip.StartDate.AddDays(TripInput.MaximumDays) }];
@@ -105,5 +110,95 @@ public sealed class ItineraryEndpointTests(AuthApiFactory factory) : IClassFixtu
         using var client = await AuthenticatedClient(host);
         using var response = await client.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
+    }
+
+    private Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> WithGenerationLimit(FakeItineraryGenerator fake, string permitLimit) =>
+        factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["RateLimiting:ItineraryGeneration:PermitLimit"] = permitLimit,
+                ["RateLimiting:ItineraryGeneration:WindowSeconds"] = "3600"
+            }));
+            builder.ConfigureTestServices(services => services.Replace(ServiceDescriptor.Singleton<IItineraryGenerator>(fake)));
+        });
+
+    [Fact]
+    public async Task GenerationOverTheLimitGets429WithoutCallingGenerator()
+    {
+        var fake = new FakeItineraryGenerator();
+        using var host = WithGenerationLimit(fake, "2");
+        using var client = await AuthenticatedClient(host);
+        for (var attempt = 0; attempt < 2; attempt++)
+        {
+            using var allowed = await client.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+            Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        }
+        using var blocked = await client.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+        Assert.Equal(HttpStatusCode.TooManyRequests, blocked.StatusCode);
+        Assert.True(blocked.Headers.RetryAfter?.Delta > TimeSpan.Zero);
+        Assert.Equal("You've reached the itinerary generation limit. Please try again later.", (await blocked.Content.ReadFromJsonAsync<ApiError>())!.Message);
+        Assert.Equal(2, fake.Calls.Count);
+    }
+
+    [Fact]
+    public async Task AnonymousRequestsDoNotUseUpTheLimit()
+    {
+        var fake = new FakeItineraryGenerator();
+        using var host = WithGenerationLimit(fake, "1");
+        using (var anonymous = host.CreateClient())
+        {
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                using var rejected = await anonymous.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+                Assert.Equal(HttpStatusCode.Unauthorized, rejected.StatusCode);
+            }
+        }
+        Assert.Empty(fake.Calls);
+        using var client = await AuthenticatedClient(host);
+        using var allowed = await client.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        Assert.Single(fake.Calls);
+    }
+
+    [Fact]
+    public async Task UsersOnTheSameIpHaveSeparateLimitsAndNewTokensDoNotResetTheirQuota()
+    {
+        var fake = new FakeItineraryGenerator();
+        using var host = WithGenerationLimit(fake, "1");
+        using var first = await AuthenticatedClient(host);
+        using var allowedFirst = await first.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+        Assert.Equal(HttpStatusCode.OK, allowedFirst.StatusCode);
+
+        using var newToken = await AuthenticatedClient(host);
+        Assert.NotEqual(first.DefaultRequestHeaders.Authorization!.Parameter, newToken.DefaultRequestHeaders.Authorization!.Parameter);
+        using var blockedFirst = await newToken.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+        Assert.Equal(HttpStatusCode.TooManyRequests, blockedFirst.StatusCode);
+
+        var secondEmail = $"quota-{Guid.NewGuid():N}@example.com";
+        using (var scope = host.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var created = await users.CreateAsync(new ApplicationUser { UserName = secondEmail, Email = secondEmail, EmailConfirmed = true }, AuthApiFactory.Password);
+            Assert.True(created.Succeeded);
+        }
+        using var second = await AuthenticatedClient(host, secondEmail);
+        using var allowedSecond = await second.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+        Assert.Equal(HttpStatusCode.OK, allowedSecond.StatusCode);
+        using var blockedSecond = await second.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip());
+        Assert.Equal(HttpStatusCode.TooManyRequests, blockedSecond.StatusCode);
+        Assert.Equal(2, fake.Calls.Count);
+    }
+
+    [Fact]
+    public async Task TripsStartingTodayAreAccepted()
+    {
+        var fake = new FakeItineraryGenerator();
+        using var host = WithGenerationLimit(fake, "1");
+        using var client = await AuthenticatedClient(host);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        using var response = await client.PostAsJsonAsync("/api/itineraries/generate", ItineraryTestData.Trip() with { StartDate = today, EndDate = today });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Single(fake.Calls);
     }
 }

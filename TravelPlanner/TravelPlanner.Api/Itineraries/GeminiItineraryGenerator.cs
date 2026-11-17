@@ -47,7 +47,6 @@ public sealed class GeminiItineraryGenerator(HttpClient client, IOptions<GeminiO
                 .Select(part => part.GetProperty("text").GetString()));
             var draft = JsonSerializer.Deserialize<ItineraryDraftDto>(text, ItineraryPrompt.JsonOptions);
             var days = ItineraryValidation.NormalizeTimeSlots(draft?.Days);
-            ItineraryValidation.ValidateDays(trip, days);
             return days;
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

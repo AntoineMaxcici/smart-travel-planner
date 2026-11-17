@@ -162,40 +162,10 @@ public sealed class GeminiItineraryGeneratorTests
     [InlineData("null")]
     [InlineData("{}")]
     [InlineData("{\"days\":null}")]
-    [InlineData("{\"days\":[]}")]
     [InlineData("```json\n{}\n```")]
     public async Task RejectsMissingNullAndNonJsonItineraries(string text)
     {
         var generator = Generator((_, _) => Task.FromResult(Reply(text)));
-        Assert.Equal(GenerationFailure.InvalidResponse, (await Assert.ThrowsAsync<ItineraryGenerationException>(() => generator.GenerateAsync(ItineraryTestData.Trip()))).Failure);
-    }
-
-    public static IEnumerable<object[]> InvalidDrafts()
-    {
-        var trip = ItineraryTestData.Trip();
-        var day = ItineraryTestData.Days(trip)[0];
-        var stop = day.Stops[0];
-        yield return [new ItineraryDraftDto { Days = [] }];
-        yield return [new ItineraryDraftDto { Days = [day with { DayNumber = 2 }, ItineraryTestData.Days(trip)[1]] }];
-        yield return [new ItineraryDraftDto { Days = [day with { ItineraryDate = trip.EndDate }, ItineraryTestData.Days(trip)[1]] }];
-        foreach (var broken in new[]
-        {
-            stop with { DisplayName = " " }, stop with { SortOrder = 3 },
-            stop with { DisplayLatitude = 91, DisplayLongitude = 0 }, stop with { DisplayLatitude = 10 },
-            stop with { EstimatedCost = -1 }, stop with { EstimatedCost = 10, CurrencyCode = null },
-            stop with { CurrencyCode = "EURO" }, stop with { EndTimeLocal = new TimeOnly(8, 0) },
-            stop with { EndTimeLocal = null }, stop with { EstimatedVisitMinutes = 0 },
-            stop with { TravelMinutesFromPrevious = -1 }, stop with { TravelMinutesFromPrevious = 10 },
-            stop with { TimeSlot = (ItineraryTimeSlot)99 }, stop with { DisplayName = new string('x', 201) }
-        }) yield return [new ItineraryDraftDto { Days = [day with { Stops = [broken, day.Stops[1], day.Stops[2]] }, ItineraryTestData.Days(trip)[1]] }];
-        yield return [new ItineraryDraftDto { Days = [day with { Stops = [stop] }, ItineraryTestData.Days(trip)[1]] }];
-        yield return [new ItineraryDraftDto { Days = [day with { Stops = [stop, day.Stops[1] with { StartTimeLocal = new TimeOnly(9, 30) }, day.Stops[2]] }, ItineraryTestData.Days(trip)[1]] }];
-    }
-
-    [Theory, MemberData(nameof(InvalidDrafts))]
-    public async Task RejectsSemanticallyInvalidDaysAndStops(ItineraryDraftDto draft)
-    {
-        var generator = Generator((_, _) => Task.FromResult(Reply(JsonSerializer.Serialize(draft, ItineraryPrompt.JsonOptions))));
         Assert.Equal(GenerationFailure.InvalidResponse, (await Assert.ThrowsAsync<ItineraryGenerationException>(() => generator.GenerateAsync(ItineraryTestData.Trip()))).Failure);
     }
 

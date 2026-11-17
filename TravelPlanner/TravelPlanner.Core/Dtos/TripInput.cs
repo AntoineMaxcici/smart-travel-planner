@@ -32,6 +32,12 @@ public sealed record TripInput : IValidatableObject
     {
         if (StartDate == default)
             yield return new("A start date is required.", [nameof(StartDate)]);
+        else
+        {
+            var clock = validationContext.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
+            if (StartDate < DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime))
+                yield return new("The trip cannot start in the past.", [nameof(StartDate)]);
+        }
         if (EndDate == default || EndDate < StartDate)
             yield return new("End date must be on or after the start date.", [nameof(EndDate)]);
         else if (EndDate.DayNumber - StartDate.DayNumber >= MaximumDays)

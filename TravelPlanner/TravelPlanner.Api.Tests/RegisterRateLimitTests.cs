@@ -100,6 +100,9 @@ public sealed class RegisterRateLimitTests(AuthApiFactory factory) : IClassFixtu
     [InlineData("Register", "5", "86401")]
     [InlineData("EmailConfirmation", "0", "60")]
     [InlineData("EmailConfirmation", "5", "86401")]
+    [InlineData("ItineraryGeneration", "0", "60")]
+    [InlineData("ItineraryGeneration", "5", "0")]
+    [InlineData("ItineraryGeneration", "5", "86401")]
     public void InvalidRateLimitConfigurationFailsAtStartup(string policy, string permitLimit, string windowSeconds)
     {
         using var invalid = WithLimit(permitLimit, windowSeconds, policy);

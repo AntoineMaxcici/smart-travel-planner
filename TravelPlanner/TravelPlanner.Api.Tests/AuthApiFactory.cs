@@ -44,6 +44,7 @@ public sealed class AuthApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             // All test requests share one client address; RegisterRateLimitTests use a low limit explicitly.
             ["RateLimiting:Register:PermitLimit"] = "1000",
             ["RateLimiting:EmailConfirmation:PermitLimit"] = "1000",
+            ["RateLimiting:ItineraryGeneration:PermitLimit"] = "1000",
             ["Logging:LogLevel:Default"] = "Warning"
         }));
         builder.ConfigureTestServices(services => services.AddSingleton<IEmailSender>(Emails));

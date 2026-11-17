@@ -1,6 +1,10 @@
 # Gemini itinerary generation
 
-The API provides `POST /api/itineraries/generate`, protected by the existing bearer authentication. It returns a preview containing `days`, each with its ordered `stops`. It does not save trips or itineraries or enrich places with Google Places data.
+The API provides `POST /api/itineraries/generate`, protected by bearer authentication and the `ItineraryGeneration` rate-limit policy. It returns a preview containing `days`, each with its ordered `stops`. It does not save trips or itineraries or enrich places with Google Places data.
+
+Generation permits 10 requests per signed-in user per fixed one-hour window by default. Configure `RateLimiting:ItineraryGeneration:PermitLimit` and `WindowSeconds` in `appsettings.json` or environment configuration. The partition key uses the JWT `sub` user ID, so users on the same IP have separate quotas and signing in again does not reset a quota. Authentication and authorization run before the limiter: anonymous calls return 401 without consuming generation quota. The auth endpoints retain their separate per-IP policies.
+
+Requests over the limit return 429 with a positive `Retry-After` header in seconds and never invoke the generator. Failed or invalid authenticated generation attempts also count toward this request limit. Limits are held in memory per API process; deployments with multiple instances need a shared limiter to enforce one aggregate user quota.
 
 ## Local key setup
 
@@ -32,7 +36,7 @@ Content-Type: application/json
 }
 ```
 
-Trips may span 1–14 inclusive calendar days and have up to 10 interests. `budgetLevel` is Low, Medium or High. Country codes, when present, are two uppercase letters. The API validates dates, text lengths, interests and budget before invoking the generator.
+Trips may span 1–14 inclusive calendar days and have up to 10 interests. The start date must be today or later, using the current UTC date. `budgetLevel` is Low, Medium or High. Country codes, when present, are two uppercase letters. The API validates dates, text lengths, interests and budget before invoking the generator.
 
 `IItineraryGenerator.GenerateAsync(TripInput, CancellationToken)` is the single-method boundary in Core. `GeminiItineraryGenerator` implements it on the API side through an injected HttpClient. Requests go to Google's fixed HTTPS `generateContent` endpoint, with the key in the redacted `x-goog-api-key` header. Redirects are disabled.
 
@@ -42,9 +46,13 @@ Responses must be complete (`finishReason: STOP`), fit within 1 MiB, deserialize
 
 Invalid input returns 400; anonymous calls return 401; provider quota returns 429; blocked/incomplete/invalid output returns 502; missing configuration or provider connection errors return 503; deadlines return 504. Caller cancellation propagates. The deadline includes reading the response body. Provider error bodies, prompts, keys and raw user input are not included in application error messages.
 
+Domain validation runs once in the controller after the generator returns, protecting the endpoint even when a different generator or fake is injected. Direct callers of `IItineraryGenerator`, including the live-check tool, validate the candidate days before using them.
+
 ## Automated and live verification
 
-Verified on November 15, 2026: 87 shared-code tests and 141 API tests passed (228 total). API Debug/Release and Windows MAUI Debug builds completed without warnings or errors; the Windows build used cached restored dependencies. The real prompt passed Paris (2 days, 8 stops), Tokyo (2 days, 7 stops) and Beirut (2 days, 7 stops) with the new TravelPlanner project's free-tier key. Other native platform builds were not exercised.
+Verified on November 17, 2026: 90 shared-code tests and 148 API tests passed (238 total), including per-user throttling, anonymous requests, quota isolation across users and refreshed tokens, invalid limit settings, and past/today/future trip dates. API Debug/Release and Windows MAUI Debug builds completed without warnings or errors; the Windows build used cached restored dependencies.
+
+The real prompt was verified on November 15, 2026: Paris (2 days, 8 stops), Tokyo (2 days, 7 stops) and Beirut (2 days, 7 stops) passed with the new TravelPlanner project's free-tier key. The review changes were tested with fake generators and consumed no Gemini quota. Other native platform builds were not exercised.
 
 ```powershell
 dotnet test TravelPlanner.Core.Tests
