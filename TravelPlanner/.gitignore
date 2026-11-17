@@ -5,3 +5,5 @@
 .tools/
 *.user
 *.log
+gemini-three-cities.json
+gemini-response-schema.json

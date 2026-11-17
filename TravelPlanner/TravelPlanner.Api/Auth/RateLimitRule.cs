@@ -1,6 +1,6 @@
 namespace TravelPlanner.Api.Auth;
 
-/// <summary>A fixed-window limit on how many requests one IP address can make. Bound as named options per policy.</summary>
+/// <summary>A fixed-window request limit, partitioned by IP or signed-in user according to the policy. Bound as named options.</summary>
 public sealed class RateLimitRule
 {
     public int PermitLimit { get; set; } = 5;
@@ -13,5 +13,7 @@ public static class RateLimitPolicies
     public const string Register = "Register";
     /// <summary>POST /api/auth/confirm-email and /api/auth/resend-confirmation. Configured under RateLimiting:EmailConfirmation.</summary>
     public const string EmailConfirmation = "EmailConfirmation";
-    public static readonly string[] All = [Register, EmailConfirmation];
+    /// <summary>POST /api/itineraries/generate. Counted per signed-in user. Configured under RateLimiting:ItineraryGeneration.</summary>
+    public const string ItineraryGeneration = "ItineraryGeneration";
+    public static readonly string[] All = [Register, EmailConfirmation, ItineraryGeneration];
 }

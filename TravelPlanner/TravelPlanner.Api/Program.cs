@@ -4,12 +4,15 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Globalization;
 using System.Text;
 using System.Threading.RateLimiting;
 using TravelPlanner.Api.Auth;
 using TravelPlanner.Api.Data;
 using TravelPlanner.Api.Email;
+using TravelPlanner.Api.Itineraries;
 using TravelPlanner.Core.Dtos;
 
 namespace TravelPlanner.Api;
@@ -94,14 +97,19 @@ public class Program
         builder.Services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            // Fixed window per client IP. Behind a reverse proxy, configure forwarded headers so this is the real client IP.
+            // Generation is per user; anonymous auth endpoints remain per IP.
+            // Behind a reverse proxy, configure forwarded headers for the real client IP.
             foreach (var policy in RateLimitPolicies.All)
             {
                 options.AddPolicy(policy, context =>
                 {
                     var rule = context.RequestServices.GetRequiredService<IOptionsMonitor<RateLimitRule>>().Get(policy);
+                    var partitionKey = policy == RateLimitPolicies.ItineraryGeneration
+                        && context.User.FindFirstValue(JwtRegisteredClaimNames.Sub) is { Length: > 0 } userId
+                            ? $"user:{userId}"
+                            : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
                     return RateLimitPartition.GetFixedWindowLimiter(
-                        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        partitionKey,
                         _ => new FixedWindowRateLimiterOptions
                         {
                             PermitLimit = rule.PermitLimit,
@@ -115,17 +123,21 @@ public class Program
                 if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
                     context.HttpContext.Response.Headers.RetryAfter =
                         ((int)Math.Ceiling(retryAfter.TotalSeconds)).ToString(CultureInfo.InvariantCulture);
-                await context.HttpContext.Response.WriteAsJsonAsync(
-                    new ApiError("Too many attempts. Please wait a few minutes and try again."), cancellationToken);
+                var message = context.HttpContext.GetEndpoint()?.Metadata.GetMetadata<EnableRateLimitingAttribute>()?.PolicyName
+                    == RateLimitPolicies.ItineraryGeneration
+                        ? "You've reached the itinerary generation limit. Please try again later."
+                        : "Too many attempts. Please wait a few minutes and try again.";
+                await context.HttpContext.Response.WriteAsJsonAsync(new ApiError(message), cancellationToken);
             };
         });
         builder.Services.AddScoped<JwtTokenService>();
+        builder.Services.AddGeminiItineraryGeneration();
         var app = builder.Build();
         if (app.Environment.IsDevelopment()) app.MapOpenApi();
         else app.UseHttpsRedirection();
-        app.UseRateLimiter();
         app.UseAuthentication();
         app.UseAuthorization();
+        app.UseRateLimiter();
         app.MapControllers();
         app.Run();
     }
