@@ -18,13 +18,13 @@ dotnet run --project TravelPlanner.Api --launch-profile http
 
 1. Turn on 2-Step Verification for the Gmail account (Google Account → Security).
 2. Create an app password: Google Account → Security → 2-Step Verification → App passwords. Copy the 16-character password. Your normal Gmail password will not work.
-3. Store the settings in user secrets:
+3. From the `TravelPlanner` folder, run the setup helper and paste the app password into its hidden prompt:
 
 ```powershell
-dotnet user-secrets set "Email:Smtp:Host" "smtp.gmail.com" --project TravelPlanner.Api
-dotnet user-secrets set "Email:Smtp:Username" "your.address@gmail.com" --project TravelPlanner.Api
-dotnet user-secrets set "Email:Smtp:Password" "your16charapppassword" --project TravelPlanner.Api
+powershell -File .\tools\Set-GmailEmail.ps1 -SenderAddress "your.address@gmail.com"
 ```
+
+The helper saves the SMTP host, port, TLS setting, sender address and app password to the API's existing user-secrets store. The password is passed to the secrets tool over standard input and is not printed or included in the shell command history. Existing database and JWT secrets are preserved. Restart the API after saving the settings to activate email delivery.
 
 Port 587 with STARTTLS and the sender name "TravelPlanner" come from `appsettings.json`. Emails are sent from `Email:Smtp:Username` unless `Email:Smtp:FromAddress` is set; Gmail only allows the account's own address or a verified alias. Gmail limits personal accounts to about 500 emails a day.
 
