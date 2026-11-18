@@ -18,6 +18,20 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
     public DbSet<Place> Places => Set<Place>();
     public DbSet<UserSavedPlace> UserSavedPlaces => Set<UserSavedPlace>();
 
+    // The interests users pick from when creating a trip (GET /api/interests). IDs are fixed so the
+    // app and tests can rely on them; add new ones with the next ID and a new migration.
+    public static readonly Interest[] SeedInterests =
+    [
+        new() { Id = 1, Name = "Food", Description = "Local dishes, markets, cafes and restaurants." },
+        new() { Id = 2, Name = "Museums", Description = "Art, science and history museums." },
+        new() { Id = 3, Name = "History", Description = "Monuments, old towns and historic sites." },
+        new() { Id = 4, Name = "Nature", Description = "Parks, gardens, hikes and viewpoints." },
+        new() { Id = 5, Name = "Nightlife", Description = "Bars, live music and evening entertainment." },
+        new() { Id = 6, Name = "Shopping", Description = "Shopping streets, boutiques and souvenirs." },
+        new() { Id = 7, Name = "Beaches", Description = "Beaches, coastline and waterfront walks." },
+        new() { Id = 8, Name = "Art", Description = "Galleries, street art and architecture." }
+    ];
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         // Creates all the ASP.NET Core Identity tables (AspNetUsers, AspNetRoles, ...)
@@ -51,6 +65,7 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             e.Property(i => i.Name).HasMaxLength(100);
             e.Property(i => i.Description).HasMaxLength(500);
             e.HasIndex(i => i.Name).IsUnique();
+            e.HasData(SeedInterests);
         });
 
         builder.Entity<TripInterest>(e =>

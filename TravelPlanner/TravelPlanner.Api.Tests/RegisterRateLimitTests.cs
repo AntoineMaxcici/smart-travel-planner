@@ -10,6 +10,7 @@ using TravelPlanner.Core.Dtos;
 
 namespace TravelPlanner.Api.Tests;
 
+[Collection(StartupFailureCollection.Name)]
 public sealed class RegisterRateLimitTests(AuthApiFactory factory) : IClassFixture<AuthApiFactory>
 {
     private const string StrongPassword = "Sign-up!Passw0rd";

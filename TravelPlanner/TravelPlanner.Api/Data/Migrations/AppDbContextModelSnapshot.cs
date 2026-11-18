@@ -311,6 +311,56 @@ namespace TravelPlanner.Api.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Interests");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Description = "Local dishes, markets, cafes and restaurants.",
+                            Name = "Food"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Description = "Art, science and history museums.",
+                            Name = "Museums"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            Description = "Monuments, old towns and historic sites.",
+                            Name = "History"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            Description = "Parks, gardens, hikes and viewpoints.",
+                            Name = "Nature"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            Description = "Bars, live music and evening entertainment.",
+                            Name = "Nightlife"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            Description = "Shopping streets, boutiques and souvenirs.",
+                            Name = "Shopping"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            Description = "Beaches, coastline and waterfront walks.",
+                            Name = "Beaches"
+                        },
+                        new
+                        {
+                            Id = 8,
+                            Description = "Galleries, street art and architecture.",
+                            Name = "Art"
+                        });
                 });
 
             modelBuilder.Entity("TravelPlanner.Api.Data.Entities.Itinerary", b =>
