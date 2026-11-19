@@ -13,6 +13,7 @@ using TravelPlanner.Core.Dtos;
 
 namespace TravelPlanner.Api.Tests;
 
+[Collection(StartupFailureCollection.Name)]
 public sealed class AuthEndpointTests(AuthApiFactory factory) : IClassFixture<AuthApiFactory>
 {
     [Fact]

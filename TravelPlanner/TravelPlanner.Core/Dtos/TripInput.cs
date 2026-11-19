@@ -30,18 +30,8 @@ public sealed record TripInput : IValidatableObject
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
-        if (StartDate == default)
-            yield return new("A start date is required.", [nameof(StartDate)]);
-        else
-        {
-            var clock = validationContext.GetService(typeof(TimeProvider)) as TimeProvider ?? TimeProvider.System;
-            if (StartDate < DateOnly.FromDateTime(clock.GetUtcNow().UtcDateTime))
-                yield return new("The trip cannot start in the past.", [nameof(StartDate)]);
-        }
-        if (EndDate == default || EndDate < StartDate)
-            yield return new("End date must be on or after the start date.", [nameof(EndDate)]);
-        else if (EndDate.DayNumber - StartDate.DayNumber >= MaximumDays)
-            yield return new($"A trip can contain at most {MaximumDays} days.", [nameof(EndDate)]);
+        foreach (var error in TripRules.ValidateDates(StartDate, EndDate, TripRules.Clock(validationContext)))
+            yield return error;
         if (Interests is not null && Interests.Any(interest => string.IsNullOrWhiteSpace(interest) || interest.Length > 100))
             yield return new("Each interest must contain between 1 and 100 characters.", [nameof(Interests)]);
     }

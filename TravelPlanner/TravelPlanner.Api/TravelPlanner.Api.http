@@ -1,10 +1,5 @@
 @TravelPlanner.Api_HostAddress = http://localhost:5082
 
-GET {{TravelPlanner.Api_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
-
 POST {{TravelPlanner.Api_HostAddress}}/api/auth/register
 Content-Type: application/json
 
@@ -47,5 +42,58 @@ Content-Type: application/json
   "budgetLevel": "Medium",
   "interests": ["art", "history", "local food"]
 }
+
+###
+
+# Trips: all of these need the token from login.
+GET {{TravelPlanner.Api_HostAddress}}/api/interests
+Authorization: Bearer {{accessToken}}
+
+###
+
+POST {{TravelPlanner.Api_HostAddress}}/api/trips
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "destinationName": "Paris",
+  "destinationCountryCode": "FR",
+  "startDate": "2027-05-10",
+  "endDate": "2027-05-12",
+  "budgetLevel": "Medium",
+  "interestIds": [1, 3, 8],
+  "notes": "First time in Paris"
+}
+
+###
+
+GET {{TravelPlanner.Api_HostAddress}}/api/trips?page=1&pageSize=20
+Authorization: Bearer {{accessToken}}
+
+###
+
+GET {{TravelPlanner.Api_HostAddress}}/api/trips/1
+Authorization: Bearer {{accessToken}}
+
+###
+
+PUT {{TravelPlanner.Api_HostAddress}}/api/trips/1
+Authorization: Bearer {{accessToken}}
+Content-Type: application/json
+
+{
+  "destinationName": "Paris",
+  "destinationCountryCode": "FR",
+  "startDate": "2027-05-10",
+  "endDate": "2027-05-13",
+  "budgetLevel": "High",
+  "interestIds": [1, 2],
+  "notes": "Added a day"
+}
+
+###
+
+DELETE {{TravelPlanner.Api_HostAddress}}/api/trips/1
+Authorization: Bearer {{accessToken}}
 
 ###
