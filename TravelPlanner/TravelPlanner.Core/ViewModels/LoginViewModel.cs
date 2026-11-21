@@ -22,6 +22,15 @@ public partial class LoginViewModel(ISessionService session) : ObservableObject
     public event EventHandler? RegisterRequested;
     /// <summary>Raised with the email address when the account still needs its emailed code.</summary>
     public event EventHandler<string>? ConfirmEmailRequested;
+    /// <summary>Raised with whatever email is typed when the user forgot their password.</summary>
+    public event EventHandler<string>? ForgotPasswordRequested;
+
+    [RelayCommand]
+    private void GoToForgotPassword()
+    {
+        if (IsBusy) return;
+        ForgotPasswordRequested?.Invoke(this, Email.Trim());
+    }
 
     [RelayCommand]
     private void GoToRegister()

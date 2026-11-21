@@ -15,5 +15,7 @@ public static class RateLimitPolicies
     public const string EmailConfirmation = "EmailConfirmation";
     /// <summary>POST /api/itineraries/generate. Counted per signed-in user. Configured under RateLimiting:ItineraryGeneration.</summary>
     public const string ItineraryGeneration = "ItineraryGeneration";
-    public static readonly string[] All = [Register, EmailConfirmation, ItineraryGeneration];
+    /// <summary>POST /api/auth/forgot-password and /api/auth/reset-password. Configured under RateLimiting:PasswordReset.</summary>
+    public const string PasswordReset = "PasswordReset";
+    public static readonly string[] All = [Register, EmailConfirmation, ItineraryGeneration, PasswordReset];
 }

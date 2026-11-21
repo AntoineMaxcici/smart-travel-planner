@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TravelPlanner.Core.ViewModels;assembly=TravelPlanner.Core"
+             xmlns:controls="clr-namespace:TravelPlanner.Maui.Controls"
+             x:Class="TravelPlanner.Maui.Views.MyTripsPage"
+             x:DataType="vm:MyTripsViewModel"
+             Style="{StaticResource TvPage}"
+             Title="My trips">
+    <Grid RowDefinitions="Auto,*">
+
+        <!-- Hero header: the template hero in compact form -->
+        <controls:PageHero x:Name="Hero" Grid.Row="0">
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8" MaximumWidthRequest="1100">
+                <Label Text="{Binding Greeting}" Style="{StaticResource TvHeroEyebrow}" />
+                <Button Grid.Column="1" Grid.RowSpan="2" Text="Sign out" Command="{Binding SignOutCommand}"
+                        BackgroundColor="#1FFFFFFF" TextColor="White" BorderColor="#66FFFFFF" BorderWidth="1"
+                        FontFamily="BarlowSemiRegular" CornerRadius="20" HeightRequest="40" Padding="18,0" FontSize="15"
+                        VerticalOptions="Start" AutomationId="SignOutButton" SemanticProperties.Hint="Signs you out of TravelPlanner" />
+                <Label Grid.Row="1" Style="{StaticResource TvHeroTitle}">
+                    <Label.FormattedText>
+                        <FormattedString>
+                            <Span Text="WHERE TO" Style="{StaticResource TvHeroTitleSpan}" />
+                            <Span Text=" next?" Style="{StaticResource TvHeroAccentSpan}" />
+                        </FormattedString>
+                    </Label.FormattedText>
+                </Label>
+                <HorizontalStackLayout Grid.Row="2" Grid.ColumnSpan="2" Spacing="8" Margin="0,6,0,0">
+                    <Border Style="{StaticResource TvPill}" BackgroundColor="#26FFFFFF" Padding="14,6">
+                        <Label Text="{Binding TripCountText}" TextColor="White" FontSize="14" FontFamily="BarlowSemiRegular" />
+                    </Border>
+                    <Border Style="{StaticResource TvPill}" BackgroundColor="{StaticResource TourvexTeal}" Padding="14,6">
+                        <Label TextColor="White" FontSize="14" FontFamily="BarlowSemiSemibold">
+                            <Label.FormattedText>
+                                <FormattedString>
+                                    <Span Text="{Binding UpcomingCount}" />
+                                    <Span Text=" upcoming" />
+                                </FormattedString>
+                            </Label.FormattedText>
+                        </Label>
+                    </Border>
+                </HorizontalStackLayout>
+            </Grid>
+        </controls:PageHero>
+
+        <!-- Trip list -->
+        <RefreshView Grid.Row="1" Command="{Binding LoadCommand}" IsRefreshing="{Binding IsRefreshing}"
+                     RefreshColor="{StaticResource TourvexTeal}">
+            <CollectionView x:Name="TripList" ItemsSource="{Binding Trips}" SelectionMode="None"
+                            RemainingItemsThreshold="3" RemainingItemsThresholdReachedCommand="{Binding LoadMoreCommand}"
+                            AutomationId="TripList">
+                <CollectionView.ItemsLayout>
+                    <LinearItemsLayout Orientation="Vertical" ItemSpacing="18" />
+                </CollectionView.ItemsLayout>
+
+                <CollectionView.Header>
+                    <VerticalStackLayout Padding="20,20,20,0" Spacing="12" MaximumWidthRequest="760">
+                        <Label Text="Your journeys" Style="{StaticResource TvHeroEyebrow}" />
+                        <Border Style="{StaticResource TvSection}" IsVisible="{Binding HasError}" BackgroundColor="#FFF4ED">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                                <Label Text="{Binding ErrorMessage}" Style="{StaticResource TvError}" VerticalOptions="Center"
+                                       AutomationId="TripsError" />
+                                <Button Grid.Column="1" Text="Retry" Command="{Binding LoadCommand}"
+                                        Style="{StaticResource TvGhostButton}" />
+                            </Grid>
+                        </Border>
+                        <ActivityIndicator IsRunning="{Binding ShowInitialLoading}" IsVisible="{Binding ShowInitialLoading}"
+                                           Color="{StaticResource TourvexTeal}" Margin="0,40"
+                                           SemanticProperties.Description="Loading your trips" />
+                    </VerticalStackLayout>
+                </CollectionView.Header>
+
+                <CollectionView.EmptyView>
+                    <VerticalStackLayout Padding="24" IsVisible="{Binding ShowEmptyState}" MaximumWidthRequest="760">
+                        <Border Style="{StaticResource TvSection}" Padding="28">
+                            <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Border WidthRequest="84" HeightRequest="84" StrokeShape="RoundRectangle 42" StrokeThickness="0"
+                                        Background="{StaticResource TripPalette2}" HorizontalOptions="Center">
+                                    <Label Text="✈" FontSize="38" TextColor="White" HorizontalOptions="Center" VerticalOptions="Center" />
+                                </Border>
+                                <Label Text="No trips yet" Style="{StaticResource TvTitle}" HorizontalOptions="Center" />
+                                <Label Text="Pick a destination, your dates and what you love. We'll help you plan the rest."
+                                       Style="{StaticResource TvBody}" HorizontalTextAlignment="Center" MaximumWidthRequest="320" />
+                                <controls:ArrowButton Text="Plan my first trip" Command="{Binding NewTripCommand}"
+                                                      Margin="0,8,0,0" HorizontalOptions="Center"
+                                                      AutomationId="EmptyNewTripButton" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </VerticalStackLayout>
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:TripCardViewModel">
+                        <Grid Padding="20,0" MaximumWidthRequest="760">
+                            <!-- The template's tour card: photo on top, then location, title, Duration pill and price. -->
+                            <Border Style="{StaticResource TvCard}" Loaded="OnCardLoaded"
+                                    SemanticProperties.Description="{Binding Destination}">
+                                <Border.GestureRecognizers>
+                                    <PointerGestureRecognizer PointerEntered="OnCardPointerEntered" PointerExited="OnCardPointerExited" />
+                                </Border.GestureRecognizers>
+                                <Border.Shadow>
+                                    <Shadow Brush="#0F2454" Opacity="0.10" Radius="24" Offset="0,12" />
+                                </Border.Shadow>
+                                <VerticalStackLayout>
+
+                                    <!-- Photo (with the palette gradient behind it while it loads) -->
+                                    <Grid HeightRequest="210" IsClippedToBounds="True">
+                                        <Grid.Style>
+                                            <Style TargetType="Grid">
+                                                <Setter Property="Background" Value="{StaticResource TripPalette0}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger TargetType="Grid" Binding="{Binding Palette}" Value="1">
+                                                        <Setter Property="Background" Value="{StaticResource TripPalette1}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Grid" Binding="{Binding Palette}" Value="2">
+                                                        <Setter Property="Background" Value="{StaticResource TripPalette2}" />
+                                                    </DataTrigger>
+                                                    <DataTrigger TargetType="Grid" Binding="{Binding Palette}" Value="3">
+                                                        <Setter Property="Background" Value="{StaticResource TripPalette3}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Grid.Style>
+                                        <Image x:Name="CardPhoto" Source="{Binding PhotoFile}" Aspect="AspectFill"
+                                               InputTransparent="True" SemanticProperties.Description="" />
+                                        <!-- Status badge, where the template shows its orange rating -->
+                                        <Border Style="{StaticResource TvPill}" BackgroundColor="{StaticResource TourvexSunset}"
+                                                HorizontalOptions="Start" VerticalOptions="Start" Margin="16" Padding="12,5">
+                                            <Label Text="{Binding StatusText}" TextColor="White" FontSize="13" FontFamily="BarlowSemiSemibold" />
+                                        </Border>
+                                        <Border Style="{StaticResource TvPill}" BackgroundColor="White"
+                                                HorizontalOptions="End" VerticalOptions="Start" Margin="16" Padding="12,5">
+                                            <Label Text="{Binding CountdownText}" TextColor="{StaticResource TourvexNavy}" FontSize="13"
+                                                   FontFamily="BarlowSemiSemibold" />
+                                        </Border>
+                                    </Grid>
+
+                                    <!-- Content. Icon paths are written out (same as TvIcons): Path.Data needs a literal string to use its converter. -->
+                                    <VerticalStackLayout Padding="22,18,22,16" Spacing="8">
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Path Data="M8,15 C8,15 3,9.8 3,6.2 A5,5 0 0 1 13,6.2 C13,9.8 8,15 8,15 Z M6.4,6.2 A1.6,1.6 0 1 1 9.6,6.2 A1.6,1.6 0 1 1 6.4,6.2 Z" Style="{StaticResource TvIconPath}" />
+                                            <Label Text="{Binding CountryCode}" IsVisible="{Binding HasCountry}" Style="{StaticResource TvBody}"
+                                                   FontSize="15" VerticalOptions="Center" />
+                                            <Label Text="{Binding DateRangeText}" Style="{StaticResource TvBody}" FontSize="15"
+                                                   VerticalOptions="Center" />
+                                        </HorizontalStackLayout>
+                                        <Label Text="{Binding Destination}" Style="{StaticResource TvCardTitle}" />
+                                        <Label Text="{Binding InterestsText}" Style="{StaticResource TvBody}" FontSize="15"
+                                               LineBreakMode="TailTruncation" />
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,6,0,0">
+                                            <Border Style="{StaticResource TvDurationPill}" VerticalOptions="Center">
+                                                <HorizontalStackLayout Spacing="7">
+                                                    <Path Data="M2,3.5 L14,3.5 L14,14 L2,14 Z M2,6.5 L14,6.5 M5,1.5 L5,5 M11,1.5 L11,5" Style="{StaticResource TvIconPath}"
+                                                          WidthRequest="14" HeightRequest="14" />
+                                                    <Label Text="{Binding DurationText}" TextColor="{StaticResource TourvexNavy}" FontSize="14"
+                                                           FontFamily="BarlowSemiRegular" VerticalOptions="Center" />
+                                                </HorizontalStackLayout>
+                                            </Border>
+                                            <Label Grid.Column="2" Text="{Binding BudgetText}" Style="{StaticResource TvPrice}"
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+                                        <BoxView HeightRequest="1" Color="#EEF0F6" BackgroundColor="#EEF0F6" Margin="0,8,0,0" />
+                                        <Button Text="Delete trip" Style="{StaticResource TvLinkButton}" HorizontalOptions="End"
+                                                TextColor="{StaticResource TourvexDanger}" FontSize="14"
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:MyTripsViewModel}}, Path=DeleteTripCommand}"
+                                                CommandParameter="{Binding .}"
+                                                SemanticProperties.Description="{Binding Destination, StringFormat='Delete trip to {0}'}" />
+                                    </VerticalStackLayout>
+                                </VerticalStackLayout>
+                            </Border>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+
+                <CollectionView.Footer>
+                    <!-- Room so the last card isn't hidden behind the New trip button -->
+                    <BoxView HeightRequest="110" Color="Transparent" BackgroundColor="Transparent" />
+                </CollectionView.Footer>
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Floating New trip button: the template's arrow button with a plus in the circle -->
+        <controls:ArrowButton x:Name="NewTripButton" Grid.Row="1" Text="New trip" Icon="{x:Static controls:TvIcons.Plus}"
+                              Command="{Binding NewTripCommand}" HorizontalOptions="End" VerticalOptions="End"
+                              Margin="0,0,24,28" AutomationId="NewTripButton" Glow="True" />
+    </Grid>
+</ContentPage>

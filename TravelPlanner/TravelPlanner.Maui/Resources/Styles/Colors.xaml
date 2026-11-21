@@ -6,12 +6,23 @@
 
     <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
-    <Color x:Key="Primary">#512BD4</Color>
-    <Color x:Key="PrimaryDark">#ac99ea</Color>
-    <Color x:Key="PrimaryDarkText">#242424</Color>
-    <Color x:Key="Secondary">#DFD8F7</Color>
-    <Color x:Key="SecondaryDarkText">#9880e5</Color>
-    <Color x:Key="Tertiary">#2B0B98</Color>
+    <!-- Theme colors from the Tourvex template (assets/css/style.css). -->
+    <Color x:Key="Primary">#2095AE</Color>
+    <Color x:Key="PrimaryDark">#5CC4DA</Color>
+    <Color x:Key="PrimaryDarkText">#0F2454</Color>
+    <Color x:Key="Secondary">#D7EEF3</Color>
+    <Color x:Key="SecondaryDarkText">#7FD0E0</Color>
+    <Color x:Key="Tertiary">#0F2454</Color>
+
+    <Color x:Key="TourvexTeal">#2095AE</Color>
+    <Color x:Key="TourvexNavy">#0F2454</Color>
+    <Color x:Key="TourvexBody">#5E6282</Color>
+    <Color x:Key="TourvexLight">#F4F5F8</Color>
+    <Color x:Key="TourvexTealSoft">#E3F4F7</Color>
+    <!-- Warm accent for countdowns and highlights. -->
+    <Color x:Key="TourvexSunset">#FF8A3D</Color>
+    <Color x:Key="TourvexSunsetSoft">#FFF1E6</Color>
+    <Color x:Key="TourvexDanger">#C2410C</Color>
 
     <Color x:Key="White">White</Color>
     <Color x:Key="Black">Black</Color>

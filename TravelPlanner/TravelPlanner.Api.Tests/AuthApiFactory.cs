@@ -45,6 +45,7 @@ public sealed class AuthApiFactory : WebApplicationFactory<Program>, IAsyncLifet
             ["RateLimiting:Register:PermitLimit"] = "1000",
             ["RateLimiting:EmailConfirmation:PermitLimit"] = "1000",
             ["RateLimiting:ItineraryGeneration:PermitLimit"] = "1000",
+            ["RateLimiting:PasswordReset:PermitLimit"] = "1000",
             ["Logging:LogLevel:Default"] = "Warning"
         }));
         builder.ConfigureTestServices(services => services.AddSingleton<IEmailSender>(Emails));

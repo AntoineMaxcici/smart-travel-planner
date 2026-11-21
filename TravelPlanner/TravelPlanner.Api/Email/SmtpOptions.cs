@@ -15,4 +15,6 @@ public sealed class SmtpOptions
     /// <summary>Defaults to Username. Gmail only sends from the account's own address (or a verified alias).</summary>
     public string FromAddress { get; set; } = "";
     public string FromName { get; set; } = "TravelPlanner";
+    /// <summary>How long to wait for the SMTP server. Kept under the app's 20-second request limit.</summary>
+    public int TimeoutSeconds { get; set; } = 15;
 }

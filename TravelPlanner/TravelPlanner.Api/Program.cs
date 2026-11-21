@@ -38,6 +38,7 @@ public class Program
             options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             // 6-digit codes the user types into the app (valid for roughly 6-9 minutes), instead of links.
             options.Tokens.EmailConfirmationTokenProvider = TokenOptions.DefaultEmailProvider;
+            options.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultEmailProvider;
         }).AddEntityFrameworkStores<AppDbContext>().AddSignInManager()
             .AddTokenProvider<EmailTokenProvider<ApplicationUser>>(TokenOptions.DefaultEmailProvider);
 
@@ -53,6 +54,7 @@ public class Program
                 "Email:Smtp:Username is required (for Gmail, the Gmail address).")
             .Validate(smtp => string.IsNullOrWhiteSpace(smtp.Host) || !string.IsNullOrWhiteSpace(smtp.Password),
                 "Email:Smtp:Password is required (for Gmail, a Google app password).")
+            .Validate(smtp => smtp.TimeoutSeconds is >= 1 and <= 60, "Email:Smtp:TimeoutSeconds must be between 1 and 60.")
             .ValidateOnStart();
         builder.Services.AddSingleton<IEmailSender>(services =>
             string.IsNullOrWhiteSpace(services.GetRequiredService<IOptions<SmtpOptions>>().Value.Host)
@@ -133,6 +135,7 @@ public class Program
         builder.Services.AddScoped<JwtTokenService>();
         builder.Services.AddGeminiItineraryGeneration();
         var app = builder.Build();
+        LogEmailMode(app);
         if (app.Environment.IsDevelopment()) app.MapOpenApi();
         else app.UseHttpsRedirection();
         app.UseAuthentication();
@@ -140,5 +143,18 @@ public class Program
         app.UseRateLimiter();
         app.MapControllers();
         app.Run();
+    }
+
+    // Says at startup where confirmation codes will go, so a missing email is easy to explain.
+    private static void LogEmailMode(WebApplication app)
+    {
+        SmtpOptions smtp;
+        try { smtp = app.Services.GetRequiredService<IOptions<SmtpOptions>>().Value; }
+        catch (OptionsValidationException) { return; } // Startup validation reports the problem.
+        if (string.IsNullOrWhiteSpace(smtp.Host))
+            app.Logger.LogWarning("Email:Smtp:Host is not set: confirmation codes are printed in this window instead of being emailed.");
+        else
+            app.Logger.LogInformation("Confirmation codes are emailed through {Host}:{Port} from {From}.", smtp.Host, smtp.Port,
+                string.IsNullOrWhiteSpace(smtp.FromAddress) ? smtp.Username : smtp.FromAddress);
     }
 }
