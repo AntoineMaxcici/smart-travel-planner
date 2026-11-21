@@ -62,6 +62,22 @@ internal sealed class StubAuthApi : IAuthApi
         ConfirmRequest = request;
         return ConfirmError is null ? Task.FromResult(Response) : Task.FromException<LoginResponse>(ConfirmError);
     }
+    public ForgotPasswordRequest? ForgotRequest { get; private set; }
+    public Exception? ForgotError { get; set; }
+    public int ForgotCalls { get; private set; }
+    public Func<Task> OnForgot { get; set; } = () => Task.CompletedTask;
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        ForgotCalls++; ForgotRequest = request; await OnForgot();
+        if (ForgotError is not null) throw ForgotError;
+    }
+    public ResetPasswordRequest? ResetRequest { get; private set; }
+    public Exception? ResetError { get; set; }
+    public Task<LoginResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        ResetRequest = request;
+        return ResetError is null ? Task.FromResult(Response) : Task.FromException<LoginResponse>(ResetError);
+    }
     public ResendConfirmationRequest? ResendRequest { get; private set; }
     public Exception? ResendError { get; set; }
     public int ResendCalls { get; private set; }
@@ -101,6 +117,13 @@ internal sealed class StubSession : ISessionService
     public async Task ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default)
     {
         ConfirmCalls++; ConfirmRequest = request; await OnConfirm(); User = TestTokens.User; SessionChanged?.Invoke(this, EventArgs.Empty);
+    }
+    public ResetPasswordRequest? ResetRequest { get; private set; }
+    public Func<Task> OnReset { get; set; } = () => Task.CompletedTask;
+    public int ResetCalls { get; private set; }
+    public async Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        ResetCalls++; ResetRequest = request; await OnReset(); User = TestTokens.User; SessionChanged?.Invoke(this, EventArgs.Empty);
     }
     public async Task SignOutAsync()
     {

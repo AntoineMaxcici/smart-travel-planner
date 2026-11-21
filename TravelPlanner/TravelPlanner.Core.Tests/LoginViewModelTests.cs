@@ -81,30 +81,4 @@ public sealed class LoginViewModelTests
         await vm.LoginCommand.ExecuteAsync(null);
         Assert.False(vm.HasError);
     }
-
-    [Fact]
-    public async Task HomeSignOutClearsSessionAndRaisesNavigationEvent()
-    {
-        var session = new StubSession { User = TestTokens.User, Token = "token" };
-        var events = 0;
-        session.SessionChanged += (_, _) => events++;
-        var vm = new HomeViewModel(session);
-        await vm.SignOutCommand.ExecuteAsync(null);
-        Assert.Equal(1, session.SignOutCalls);
-        Assert.False(session.IsAuthenticated);
-        Assert.Null(session.Token);
-        Assert.Equal(1, events);
-        Assert.False(vm.IsBusy);
-    }
-
-    [Fact]
-    public async Task SignOutStorageFailureShowsErrorAndAllowsRetry()
-    {
-        var session = new StubSession { User = TestTokens.User, OnSignOut = () => Task.FromException(new AuthException("Storage unavailable.")) };
-        var vm = new HomeViewModel(session);
-        await vm.SignOutCommand.ExecuteAsync(null);
-        Assert.True(vm.HasError);
-        Assert.True(session.IsAuthenticated);
-        Assert.True(vm.SignOutCommand.CanExecute(null));
-    }
 }

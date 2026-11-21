@@ -44,6 +44,9 @@ public sealed class SessionService(IAuthApi api, ITokenStore store, TimeProvider
     public Task ConfirmEmailAsync(ConfirmEmailRequest request, CancellationToken cancellationToken = default) =>
         StartSessionAsync(() => api.ConfirmEmailAsync(request, cancellationToken), cancellationToken);
 
+    public Task ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default) =>
+        StartSessionAsync(() => api.ResetPasswordAsync(request, cancellationToken), cancellationToken);
+
     private async Task StartSessionAsync(Func<Task<LoginResponse>> authenticate, CancellationToken cancellationToken)
     {
         await gate.WaitAsync(cancellationToken);

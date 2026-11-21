@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:TravelPlanner.Core.ViewModels;assembly=TravelPlanner.Core"
+             xmlns:controls="clr-namespace:TravelPlanner.Maui.Controls"
+             x:Class="TravelPlanner.Maui.Views.NewTripPage"
+             x:DataType="vm:NewTripViewModel"
+             Style="{StaticResource TvPage}"
+             Title="New trip">
+    <ScrollView>
+        <VerticalStackLayout Spacing="0">
+
+            <!-- Header: the template hero in compact form -->
+            <controls:PageHero x:Name="Hero">
+                <VerticalStackLayout Spacing="8" MaximumWidthRequest="760">
+                    <Button Text="‹  My trips" Command="{Binding CancelCommand}" Style="{StaticResource TvLinkButton}"
+                            TextColor="White" FontFamily="BarlowSemiRegular" Margin="-4,0,0,4" AutomationId="BackToTripsButton" />
+                    <Label Text="Plan a trip" Style="{StaticResource TvHeroEyebrow}" />
+                    <Label Style="{StaticResource TvHeroTitle}">
+                        <Label.FormattedText>
+                            <FormattedString>
+                                <Span Text="YOUR NEXT" Style="{StaticResource TvHeroTitleSpan}" />
+                                <Span Text=" adventure starts here." Style="{StaticResource TvHeroAccentSpan}" />
+                            </FormattedString>
+                        </Label.FormattedText>
+                    </Label>
+                </VerticalStackLayout>
+            </controls:PageHero>
+
+            <VerticalStackLayout x:Name="Form" Padding="20,22,20,32" Spacing="18" MaximumWidthRequest="760">
+
+                <!-- Destination -->
+                <Border Style="{StaticResource TvSection}">
+                    <Border.Shadow>
+                        <Shadow Brush="#0F2454" Opacity="0.08" Radius="18" Offset="0,8" />
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Where to?" Style="{StaticResource TvEyebrow}" />
+                        <controls:PillField Icon="{x:Static controls:TvIcons.Pin}">
+                            <Entry Text="{Binding Destination}" Placeholder="City or region, e.g. Lisbon"
+                                   Style="{StaticResource TvFieldInput}" MaxLength="200" ReturnType="Next"
+                                   IsEnabled="{Binding IsNotBusy}" AutomationId="DestinationEntry"
+                                   SemanticProperties.Description="Destination" />
+                        </controls:PillField>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Dates -->
+                <Border Style="{StaticResource TvSection}">
+                    <Border.Shadow>
+                        <Shadow Brush="#0F2454" Opacity="0.08" Radius="18" Offset="0,8" />
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="10">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="When?" Style="{StaticResource TvEyebrow}" VerticalOptions="Center" />
+                            <Border Grid.Column="1" Style="{StaticResource TvPill}" BackgroundColor="{StaticResource TourvexSunsetSoft}">
+                                <Label Text="{Binding DurationText}" TextColor="#B45309" FontSize="12" FontFamily="BarlowSemiSemibold" />
+                            </Border>
+                        </Grid>
+                        <!-- Stacked: the pill inputs are too wide to sit side by side on phones. -->
+                        <VerticalStackLayout Spacing="12">
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="Start" Style="{StaticResource TvMetaLabel}" />
+                                <controls:PillField Icon="{x:Static controls:TvIcons.Calendar}">
+                                    <DatePicker Date="{Binding StartDate}" MinimumDate="{Binding MinimumDate}"
+                                                Style="{StaticResource TvDatePicker}" IsEnabled="{Binding IsNotBusy}"
+                                                AutomationId="StartDatePicker" SemanticProperties.Description="Start date" />
+                                </controls:PillField>
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Spacing="4">
+                                <Label Text="End" Style="{StaticResource TvMetaLabel}" />
+                                <controls:PillField Icon="{x:Static controls:TvIcons.Calendar}">
+                                    <DatePicker Date="{Binding EndDate}" MinimumDate="{Binding StartDate}"
+                                                MaximumDate="{Binding MaximumEndDate}"
+                                                Style="{StaticResource TvDatePicker}" IsEnabled="{Binding IsNotBusy}"
+                                                AutomationId="EndDatePicker" SemanticProperties.Description="End date" />
+                                </controls:PillField>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                        <Label Text="Trips can be up to 14 days long." Style="{StaticResource TvBody}" FontSize="12" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Interests -->
+                <Border Style="{StaticResource TvSection}">
+                    <Border.Shadow>
+                        <Shadow Brush="#0F2454" Opacity="0.08" Radius="18" Offset="0,8" />
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Text="What do you love?" Style="{StaticResource TvEyebrow}" VerticalOptions="Center" />
+                            <Label Grid.Column="1" Text="{Binding SelectedInterestsText}" Style="{StaticResource TvBody}"
+                                   FontSize="12" VerticalOptions="Center" />
+                        </Grid>
+                        <ActivityIndicator IsRunning="{Binding ShowInterestsLoading}" IsVisible="{Binding ShowInterestsLoading}"
+                                           Color="{StaticResource TourvexTeal}" HorizontalOptions="Start"
+                                           SemanticProperties.Description="Loading interests" />
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" IsVisible="{Binding HasInterestsError}">
+                            <Label Text="{Binding InterestsError}" Style="{StaticResource TvError}" VerticalOptions="Center" />
+                            <Button Grid.Column="1" Text="Retry" Command="{Binding LoadInterestsCommand}"
+                                    Style="{StaticResource TvGhostButton}" AutomationId="RetryInterestsButton" />
+                        </Grid>
+                        <FlexLayout BindableLayout.ItemsSource="{Binding Interests}" Wrap="Wrap" JustifyContent="Start"
+                                    AlignItems="Start" AutomationId="InterestChips">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate x:DataType="vm:InterestChipViewModel">
+                                    <Border StrokeShape="RoundRectangle 20" StrokeThickness="1.5" Stroke="{StaticResource TourvexTeal}"
+                                            Padding="14,8" Margin="0,0,8,8"
+                                            SemanticProperties.Description="{Binding Name}"
+                                            SemanticProperties.Hint="{Binding Description}"
+                                            ToolTipProperties.Text="{Binding Description}">
+                                        <Border.GestureRecognizers>
+                                            <TapGestureRecognizer
+                                                Command="{Binding Source={RelativeSource AncestorType={x:Type vm:NewTripViewModel}}, Path=ToggleInterestCommand}"
+                                                CommandParameter="{Binding .}" />
+                                        </Border.GestureRecognizers>
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Setter Property="BackgroundColor" Value="White" />
+                                                <Style.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="BackgroundColor" Value="{StaticResource TourvexTeal}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <HorizontalStackLayout Spacing="6">
+                                            <Label Text="✓" TextColor="White" FontSize="13" FontFamily="BarlowSemiSemibold"
+                                                   IsVisible="{Binding IsSelected}" VerticalOptions="Center" />
+                                            <Label Text="{Binding Name}" FontSize="14" FontFamily="BarlowSemiSemibold" VerticalOptions="Center">
+                                                <Label.Style>
+                                                    <Style TargetType="Label">
+                                                        <Setter Property="TextColor" Value="{StaticResource TourvexTeal}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger TargetType="Label" Binding="{Binding IsSelected}" Value="True">
+                                                                <Setter Property="TextColor" Value="White" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Label.Style>
+                                            </Label>
+                                        </HorizontalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </FlexLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Budget -->
+                <Border Style="{StaticResource TvSection}">
+                    <Border.Shadow>
+                        <Shadow Brush="#0F2454" Opacity="0.08" Radius="18" Offset="0,8" />
+                    </Border.Shadow>
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="Budget" Style="{StaticResource TvEyebrow}" />
+                        <controls:PillField Icon="{x:Static controls:TvIcons.Wallet}">
+                            <Picker Title="Choose a budget" ItemsSource="{Binding Budgets}" SelectedItem="{Binding SelectedBudget}"
+                                    Style="{StaticResource TvPicker}" IsEnabled="{Binding IsNotBusy}"
+                                    AutomationId="BudgetPicker" SemanticProperties.Description="Budget" />
+                        </controls:PillField>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}" Style="{StaticResource TvError}"
+                       AutomationId="NewTripError" />
+                <HorizontalStackLayout Spacing="18">
+                    <controls:ArrowButton Text="Create trip" Command="{Binding SaveCommand}" IsBusy="{Binding IsBusy}"
+                                          AutomationId="CreateTripButton" Glow="True" />
+                    <Button Text="Cancel" Command="{Binding CancelCommand}" Style="{StaticResource TvLinkButton}"
+                            VerticalOptions="Center" AutomationId="CancelNewTripButton" />
+                </HorizontalStackLayout>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

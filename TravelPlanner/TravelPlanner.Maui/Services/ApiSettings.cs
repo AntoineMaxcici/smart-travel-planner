@@ -2,6 +2,13 @@ namespace TravelPlanner.Maui.Services;
 
 public static class ApiSettings
 {
+    /// <summary>Change to true to run the app with FakeTripsApi's sample trips instead of calling the API.</summary>
+    public const bool UseFakeTripsByDefault = false;
+
+    /// <summary>True when the app should use sample trips: set TRAVELPLANNER_FAKE_TRIPS=1, or UseFakeTripsByDefault.</summary>
+    public static bool UseFakeTrips =>
+        UseFakeTripsByDefault || Environment.GetEnvironmentVariable("TRAVELPLANNER_FAKE_TRIPS") == "1";
+
     public static Uri BaseAddress
     {
         get

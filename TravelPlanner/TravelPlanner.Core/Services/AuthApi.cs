@@ -67,6 +67,31 @@ public sealed class AuthApi(HttpClient client) : IAuthApi
         if (!response.IsSuccessStatusCode) throw new AuthException("A new code couldn't be sent. Please try again shortly.");
     }
 
+    public async Task ForgotPasswordAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await client.PostAsJsonAsync("api/auth/forgot-password", request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            throw new AuthException("Too many attempts. Please wait a few minutes and try again.");
+        if (response.StatusCode == HttpStatusCode.BadRequest) throw new AuthException("Enter a valid email address.");
+        if (!response.IsSuccessStatusCode) throw new AuthException("A reset code couldn't be sent. Please try again shortly.");
+    }
+
+    public async Task<LoginResponse> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        using var response = await client.PostAsJsonAsync("api/auth/reset-password", request, cancellationToken);
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+            throw new AuthException(await ReadErrorAsync(response, "That code is invalid or has expired. Request a new code and try again.", cancellationToken));
+        if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            throw new AuthException("Too many attempts. Please wait a few minutes and try again.");
+        if (!response.IsSuccessStatusCode) throw new AuthException("Password reset is unavailable. Please try again shortly.");
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<LoginResponse>(cancellationToken)
+                ?? throw new AuthException("The server returned an invalid response.");
+        }
+        catch (JsonException) { throw new AuthException("The server returned an invalid response."); }
+    }
+
     // Reads the API's { "message": "..." } body; falls back when the body is missing or a different shape.
     private static async Task<string> ReadErrorAsync(HttpResponseMessage response, string fallback, CancellationToken cancellationToken)
     {
