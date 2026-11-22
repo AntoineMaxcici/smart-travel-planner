@@ -48,6 +48,22 @@ Invalid input returns 400; anonymous calls return 401; provider quota returns 42
 
 Domain validation runs once in the controller after the generator returns, protecting the endpoint even when a different generator or fake is injected. Direct callers of `IItineraryGenerator`, including the live-check tool, validate the candidate days before using them.
 
+## Saved trip generation
+
+`POST /api/trips/{id}/generate` has no request body. It uses the saved trip and its interest names, requires the owner's bearer token, and shares the `ItineraryGeneration` user quota with the preview endpoint. Missing trips and other users' trips both return 404. Past/invalid trip details return 400 before a run is created.
+
+The endpoint commits a `Pending` GenerationRun and sets the trip to `Generating` before calling Gemini. Concurrent generation, editing, or deletion of that trip returns 409. A successful request returns 200 with `generationRunId`, `itineraryId`, `revisionNumber`, `status: "Ready"`, and `days` with their stops. This is a synchronous request; it returns when generation finishes rather than starting a background job.
+
+The workflow has a shared **20-second deadline** for generation, its retry, and enrichment/persistence. Malformed JSON, schema failures, or invalid generated days/stops get exactly one retry within the remaining time. Configuration, quota, blocked-content, availability and timeout failures are not retried. The preview endpoint's existing timeout remains unchanged.
+
+Each successful run saves the next revision (maximum existing revision + 1), its days/stops and `IsCurrent = true`. Previous revisions remain stored with `IsCurrent = false`. Saving, enrichment and publishing the revision are one transaction, so a failed attempt keeps the previous current revision intact. Runs finish as `Succeeded` with the trip `Ready`, or `Failed` with the trip `Failed`, completion time, duration, error code and safe message. Request cancellation also records failure using a separate short cleanup deadline. This is request-scoped execution; recovery after process termination is not a durable job/recovery system.
+
+Failures return `{ "generationRunId": 123, "code": "Timeout", "message": "Itinerary generation took too long. Please try again." }`. The app can show `message`. HTTP statuses are 504 for timeout, 502 for invalid/blocked output, 429 for provider quota, and 503 for unavailable/unconfigured services. Provider payloads and exception details are not returned or logged.
+
+`IPlacesEnricher.EnrichAsync(Itinerary, CancellationToken)` receives the saved aggregate, including stop IDs, inside the publication transaction. The workflow saves its modifications before marking success. `NoOpPlacesEnricher` is registered until Antoine's integration is merged; replace that registration with his implementation and adapt the contract if needed. Enrichers must honor cancellation and should avoid irreversible external writes because database rollback cannot undo those.
+
+Verified on November 22, 2026 with PostgreSQL and fake generation/enrichment: 103 Core and 198 API tests passed (301 total). Coverage includes saved revisions, Pending visibility, ownership, shared rate limits, retry exhaustion/recovery, the shared timeout during both generation and enrichment, cancellation cleanup, concurrency, past dates and rollback after enrichment failure. These checks do not use Gemini quota.
+
 ## Automated and live verification
 
 Verified on November 17, 2026: 90 shared-code tests and 148 API tests passed (238 total), including per-user throttling, anonymous requests, quota isolation across users and refreshed tokens, invalid limit settings, and past/today/future trip dates. API Debug/Release and Windows MAUI Debug builds completed without warnings or errors; the Windows build used cached restored dependencies.
