@@ -13,6 +13,7 @@ using TravelPlanner.Api.Auth;
 using TravelPlanner.Api.Data;
 using TravelPlanner.Api.Email;
 using TravelPlanner.Api.Itineraries;
+using TravelPlanner.Api.Places;
 using TravelPlanner.Core.Dtos;
 
 namespace TravelPlanner.Api;
@@ -132,8 +133,10 @@ public class Program
         });
         builder.Services.AddScoped<JwtTokenService>();
         builder.Services.AddGeminiItineraryGeneration();
-        builder.Services.AddScoped<IPlacesEnricher, NoOpPlacesEnricher>();
+        builder.Services.AddPlacesEnrichment();
         builder.Services.AddScoped<TripGenerationService>();
+        // GET /health for Azure App Service / uptime monitoring: 200 "Healthy" when the database answers.
+        builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
         var app = builder.Build();
         if (app.Environment.IsDevelopment()) app.MapOpenApi();
         else app.UseHttpsRedirection();
@@ -141,6 +144,7 @@ public class Program
         app.UseAuthorization();
         app.UseRateLimiter();
         app.MapControllers();
+        app.MapHealthChecks("/health");
         app.Run();
     }
 }
