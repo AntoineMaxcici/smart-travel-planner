@@ -87,6 +87,7 @@ public partial class App : Application
         viewModel.RegisterRequested += (_, _) => ShowRegisterPage();
         viewModel.ConfirmEmailRequested += (_, email) => ShowConfirmEmailPage(email,
             "Your email isn't confirmed yet. We've sent you a new code.");
+        viewModel.ForgotPasswordRequested += (_, email) => ShowForgotPasswordPage(email);
         window.Page = login;
     }
 
@@ -98,6 +99,17 @@ public partial class App : Application
         viewModel.LoginRequested += (_, _) => ShowLoginPage();
         viewModel.ConfirmationRequired += (_, email) => ShowConfirmEmailPage(email);
         window.Page = register;
+    }
+
+    private void ShowForgotPasswordPage(string email)
+    {
+        if (window is null) return;
+        var forgot = services.GetRequiredService<ForgotPasswordPage>();
+        var viewModel = (ForgotPasswordViewModel)forgot.BindingContext;
+        viewModel.Email = email;
+        viewModel.LoginRequested += (_, _) => ShowLoginPage();
+        // A successful reset signs the user in; OnSessionChanged then shows the AppShell.
+        window.Page = forgot;
     }
 
     private void ShowConfirmEmailPage(string email, string? info = null)

@@ -2,33 +2,47 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:TravelPlanner.Core.ViewModels;assembly=TravelPlanner.Core"
+             xmlns:controls="clr-namespace:TravelPlanner.Maui.Controls"
              x:Class="TravelPlanner.Maui.Views.ConfirmEmailPage"
-             x:DataType="vm:ConfirmEmailViewModel" Title="Confirm your email">
-    <ScrollView>
-        <VerticalStackLayout Padding="28" Spacing="18" MaximumWidthRequest="440"
-                             VerticalOptions="Center" HorizontalOptions="Fill">
-            <Label Text="Check your email" FontSize="32" FontAttributes="Bold" SemanticProperties.HeadingLevel="Level1" />
-            <Label Text="{Binding Instructions}" FontSize="16" />
-            <Label Text="Confirmation code" />
-            <Entry Text="{Binding Code}" Placeholder="123456" Keyboard="Numeric"
-                   IsEnabled="{Binding IsNotBusy}" ReturnType="Go" MaxLength="12"
-                   FontSize="24" CharacterSpacing="6"
-                   ReturnCommand="{Binding ConfirmCommand}" AutomationId="ConfirmCode"
-                   SemanticProperties.Description="Six digit confirmation code" />
+             x:DataType="vm:ConfirmEmailViewModel" Title="Confirm your email"
+             BackgroundColor="{StaticResource TourvexNavy}">
+    <controls:AuthLayout Eyebrow="One last step"
+                         Title="Check your inbox"
+                         Accent="then you're ready."
+                         Subtitle="We emailed you a 6-digit code. It can take a minute to arrive, so check Spam and Promotions too.">
+        <VerticalStackLayout Spacing="16">
+            <Label Style="{StaticResource TvFormTitle}">
+                <Label.FormattedText>
+                    <FormattedString>
+                        <Span Text="Confirm your " />
+                        <Span Text="email" Style="{StaticResource TvFormAccent}" />
+                    </FormattedString>
+                </Label.FormattedText>
+            </Label>
+            <Label Text="{Binding Instructions}" Style="{StaticResource TvFormText}" />
+            <controls:PillField Icon="{x:Static controls:TvIcons.Code}">
+                <Entry Text="{Binding Code}" Placeholder="123456" Keyboard="Numeric"
+                       Style="{StaticResource TvFieldInput}" FontSize="22" CharacterSpacing="6"
+                       IsEnabled="{Binding IsNotBusy}" ReturnType="Go" MaxLength="12"
+                       ReturnCommand="{Binding ConfirmCommand}" AutomationId="ConfirmCode"
+                       SemanticProperties.Description="Six digit confirmation code" />
+            </controls:PillField>
             <Label Text="{Binding ErrorMessage}" IsVisible="{Binding HasError}"
-                   TextColor="{AppThemeBinding Light=#B42318, Dark=#FFB4AB}" AutomationId="ConfirmError" />
-            <Label Text="{Binding InfoMessage}" IsVisible="{Binding HasInfo}" AutomationId="ConfirmInfo" />
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                               SemanticProperties.Description="Please wait" />
-            <Button Text="Confirm and sign in" Command="{Binding ConfirmCommand}" AutomationId="ConfirmButton" />
+                   Style="{StaticResource TvError}" AutomationId="ConfirmError" />
+            <Label Text="{Binding InfoMessage}" IsVisible="{Binding HasInfo}"
+                   Style="{StaticResource TvInfo}" AutomationId="ConfirmInfo" />
+            <controls:ArrowButton Text="Confirm and sign in" Command="{Binding ConfirmCommand}" IsBusy="{Binding IsBusy}"
+                                  AutomationId="ConfirmButton" />
             <Button Text="Didn't get it? Send a new code" Command="{Binding ResendCommand}"
-                    BackgroundColor="Transparent"
-                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                    AutomationId="ResendCodeButton" />
-            <Button Text="Back to sign in" Command="{Binding GoToLoginCommand}"
-                    IsEnabled="{Binding IsNotBusy}" BackgroundColor="Transparent"
-                    TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource PrimaryDark}}"
-                    AutomationId="ConfirmBackToLoginButton" />
+                    Style="{StaticResource TvLinkButton}" AutomationId="ResendCodeButton" />
         </VerticalStackLayout>
-    </ScrollView>
+
+        <controls:AuthLayout.Footer>
+            <VerticalStackLayout Spacing="12">
+                <Label Text="Used the wrong email?" Style="{StaticResource TvHeroNote}" />
+                <controls:ArrowButton Text="Back to sign in" Variant="White"
+                                      Command="{Binding GoToLoginCommand}" AutomationId="ConfirmBackToLoginButton" />
+            </VerticalStackLayout>
+        </controls:AuthLayout.Footer>
+    </controls:AuthLayout>
 </ContentPage>

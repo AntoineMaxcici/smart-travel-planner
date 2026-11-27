@@ -106,6 +106,50 @@ public sealed class AuthController(UserManager<ApplicationUser> users,
         return Accepted(new ApiError("If that account still needs confirming, a new code is on its way."));
     }
 
+    [AllowAnonymous]
+    [HttpPost("forgot-password")]
+    [EnableRateLimiting(RateLimitPolicies.PasswordReset)]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
+    {
+        var user = await users.FindByEmailAsync(request.Email.Trim());
+        if (user is not null) await confirmation.SendPasswordResetCodeAsync(user, cancellationToken);
+        // Same response whether or not the account exists, so this can't be used to discover registered emails.
+        return Accepted(new ApiError("If an account uses that email, a reset code is on its way."));
+    }
+
+    [AllowAnonymous]
+    [HttpPost("reset-password")]
+    [EnableRateLimiting(RateLimitPolicies.PasswordReset)]
+    public async Task<ActionResult<LoginResponse>> ResetPassword(ResetPasswordRequest request)
+    {
+        var user = await users.FindByEmailAsync(request.Email.Trim());
+        // Unknown accounts get the same answer as a wrong code.
+        if (user is null) return BadRequest(new ApiError(InvalidCodeMessage));
+        if (await users.IsLockedOutAsync(user))
+            return StatusCode(StatusCodes.Status429TooManyRequests, new ApiError(TooManyAttemptsMessage));
+        // Check the code before the password rules: a wrong code always counts towards lockout (5 tries, 5 minutes)
+        // and never reveals anything else.
+        var validCode = await users.VerifyUserTokenAsync(user, users.Options.Tokens.PasswordResetTokenProvider,
+            UserManager<ApplicationUser>.ResetPasswordTokenPurpose, request.Code);
+        if (!validCode)
+        {
+            await users.AccessFailedAsync(user);
+            return BadRequest(new ApiError(InvalidCodeMessage));
+        }
+        // Changes the password and the security stamp, so the code can't be used again.
+        var result = await users.ResetPasswordAsync(user, request.Code, request.NewPassword);
+        if (!result.Succeeded)
+            return BadRequest(new ApiError(string.Join(" ", result.Errors.Select(error => error.Description))));
+        await users.ResetAccessFailedCountAsync(user);
+        if (!user.EmailConfirmed)
+        {
+            // The code was emailed to this address, so it also proves the user owns it.
+            user.EmailConfirmed = true;
+            await users.UpdateAsync(user);
+        }
+        return Ok(tokens.Create(user));
+    }
+
     [Authorize]
     [HttpGet("me")]
     public async Task<ActionResult<UserProfile>> Me()

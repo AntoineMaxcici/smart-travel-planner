@@ -6,9 +6,10 @@
     FlyoutBehavior="Disabled"
     Title="TravelPlanner">
 
+    <!-- The page users see after signing in. Its content is set in AppShell.xaml.cs from dependency injection. -->
     <ShellContent
-        Title="Home"
-        x:Name="HomeContent"
-        Route="MainPage" />
+        Title="My trips"
+        x:Name="MyTripsContent"
+        Route="mytrips" />
 
 </Shell>
