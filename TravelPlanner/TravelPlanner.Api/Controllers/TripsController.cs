@@ -3,6 +3,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.RateLimiting;
+using TravelPlanner.Api.Auth;
+using TravelPlanner.Api.Itineraries;
 using TravelPlanner.Api.Data;
 using TravelPlanner.Api.Data.Entities;
 using TravelPlanner.Api.Trips;
@@ -22,6 +25,15 @@ public sealed class TripsController(AppDbContext database, TimeProvider clock) :
         ?? throw new InvalidOperationException("The access token has no subject claim.");
 
     private IQueryable<Trip> MyTrips => database.Trips.Where(t => t.UserId == UserId);
+
+    [HttpPost("{id:int}/generate")]
+    [EnableRateLimiting(RateLimitPolicies.ItineraryGeneration)]
+    public async Task<IActionResult> Generate(int id, [FromServices] TripGenerationService generation,
+        CancellationToken cancellationToken)
+    {
+        var result = await generation.GenerateAsync(id, UserId, cancellationToken);
+        return StatusCode(result.StatusCode, result.Body);
+    }
 
     [HttpGet]
     public async Task<ActionResult<PagedResult<TripSummaryDto>>> List(
@@ -81,8 +93,11 @@ public sealed class TripsController(AppDbContext database, TimeProvider clock) :
     [HttpPut("{id:int}")]
     public async Task<ActionResult<TripDetailDto>> Save(int id, TripRequest request, CancellationToken cancellationToken)
     {
+        await using var edit = await database.Database.BeginTransactionAsync(cancellationToken);
         var trip = await LoadAsync(id, tracked: true, cancellationToken);
         if (trip is null) return TripNotFound();
+        if (trip.Status == TripStatus.Generating)
+            return Conflict(new ApiError("Wait for generation to finish before editing this trip."));
         // A trip that has already started can still be edited, as long as its start date doesn't move into the past.
         if (request.StartDate != trip.StartDate && TripRules.StartsInThePast(request.StartDate, clock))
             ModelState.AddModelError(nameof(TripRequest.StartDate), TripRules.PastStartMessage);
@@ -96,6 +111,7 @@ public sealed class TripsController(AppDbContext database, TimeProvider clock) :
             trip.TripInterests.Add(new TripInterest { Interest = interest });
         trip.UpdatedAtUtc = UtcNow();
         await database.SaveChangesAsync(cancellationToken);
+        await edit.CommitAsync(cancellationToken);
         return trip.ToDetailDto();
     }
 
@@ -103,13 +119,17 @@ public sealed class TripsController(AppDbContext database, TimeProvider clock) :
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        var deleted = await MyTrips.Where(t => t.Id == id).ExecuteDeleteAsync(cancellationToken);
+        var deleted = await MyTrips.Where(t => t.Id == id && t.Status != TripStatus.Generating).ExecuteDeleteAsync(cancellationToken);
+        if (deleted == 0 && await MyTrips.AnyAsync(t => t.Id == id, cancellationToken))
+            return Conflict(new ApiError("Wait for generation to finish before deleting this trip."));
         return deleted == 0 ? TripNotFound() : NoContent();
     }
 
     private Task<Trip?> LoadAsync(int id, bool tracked, CancellationToken cancellationToken)
     {
-        var query = MyTrips.Include(t => t.TripInterests).ThenInclude(ti => ti.Interest).Where(t => t.Id == id);
+        var source = tracked ? database.Trips.FromSqlInterpolated(
+            $"SELECT * FROM \"Trips\" WHERE \"Id\" = {id} AND \"UserId\" = {UserId} FOR UPDATE") : MyTrips;
+        var query = source.Include(t => t.TripInterests).ThenInclude(ti => ti.Interest).Where(t => t.Id == id);
         return (tracked ? query : query.AsNoTracking()).SingleOrDefaultAsync(cancellationToken);
     }
 

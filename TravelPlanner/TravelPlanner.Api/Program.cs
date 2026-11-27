@@ -132,6 +132,8 @@ public class Program
         });
         builder.Services.AddScoped<JwtTokenService>();
         builder.Services.AddGeminiItineraryGeneration();
+        builder.Services.AddScoped<IPlacesEnricher, NoOpPlacesEnricher>();
+        builder.Services.AddScoped<TripGenerationService>();
         var app = builder.Build();
         if (app.Environment.IsDevelopment()) app.MapOpenApi();
         else app.UseHttpsRedirection();
