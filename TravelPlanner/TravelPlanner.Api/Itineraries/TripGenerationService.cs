@@ -44,7 +44,7 @@ public sealed class TripGenerationService(AppDbContext database, IItineraryGener
             trip.UpdatedAtUtc = clock.GetUtcNow().UtcDateTime;
             run = new GenerationRun
             {
-                Trip = trip, Provider = "Gemini", Model = settings.Value.Model, PromptVersion = "v1",
+                Trip = trip, Provider = "Gemini", Model = settings.Value.Model, PromptVersion = ItineraryPrompt.Version,
                 Status = GenerationStatus.Pending, AttemptedAtUtc = clock.GetUtcNow().UtcDateTime
             };
             database.GenerationRuns.Add(run);

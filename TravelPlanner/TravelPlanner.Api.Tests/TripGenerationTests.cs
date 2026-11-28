@@ -125,6 +125,7 @@ public sealed class TripGenerationTests(AuthApiFactory factory) : IClassFixture<
         var trip = await db.Trips.Include(t => t.GenerationRuns).Include(t => t.Itineraries)
             .ThenInclude(i => i.Days).ThenInclude(d => d.Stops).SingleAsync(t => t.Id == id);
         Assert.Equal(TripStatus.Ready, trip.Status);
+        Assert.All(trip.GenerationRuns, r => Assert.Equal(ItineraryPrompt.Version, r.PromptVersion));
         Assert.All(trip.GenerationRuns, r => { Assert.Equal(GenerationStatus.Succeeded, r.Status); Assert.NotNull(r.CompletedAtUtc); Assert.Null(r.ErrorCode); });
         Assert.Equal(2, Assert.Single(trip.Itineraries, i => i.IsCurrent).RevisionNumber);
         Assert.Equal(2, trip.Itineraries.Count);

@@ -82,10 +82,32 @@ API integration tests need the same PostgreSQL setup as the authentication tests
 To test the real prompt with the saved key, run from `TravelPlanner`:
 
 ```powershell
-dotnet run --project tools/TravelPlanner.GeminiSmoke -- --live gemini-three-cities.json
+dotnet run --project tools/TravelPlanner.GeminiSmoke -- --live gemini-five-cities.json
 ```
 
-This makes one request each for Paris, Tokyo and Beirut using two-day trips next month, validates every returned itinerary and writes the inputs and outputs to a JSON report. All three must succeed for exit code 0. It returns exit code 2 when a city cannot be verified. A missing key stops immediately without making any requests. A local generated report is ignored by Git. Review the actual suggestions in the report in addition to the structural checks.
+This makes one request each for Paris, Tokyo, Beirut, Rome and Lisbon using two-day trips next month, validates every returned itinerary and writes inputs, outputs, elapsed milliseconds (including failures), and the 8-second comparison to a JSON report. Exit code 0 requires all five outputs to be valid and within target; 2 means at least one city was not verified, and 3 means all outputs were valid but at least one missed the target. A missing key stops immediately without making any requests. Review the actual suggestions in the report in addition to structural checks.
+
+### Five-city timing, November 28, 2026
+
+One sequential request per city, no warmup or automatic retry, `gemini-3.5-flash-lite`, prompt `itinerary-v3`, medium-budget trips for December 28–29, 2026:
+
+| City | Baseline v2 | Final v3 | Final stops | Valid / ≤8 seconds |
+| --- | ---: | ---: | ---: | --- |
+| Paris | 6.43s | 4.66s | 8 | Yes / Yes |
+| Tokyo | 4.24s | 3.75s | 8 | Yes / Yes |
+| Beirut | 3.74s | 2.96s | 6 | Yes / Yes |
+| Rome | 3.81s | 3.75s | 8 | Yes / Yes |
+| Lisbon | 4.03s | 4.42s | 8 | Yes / Yes |
+
+All final outputs passed date, count, order, time-gap, type, coordinate and cost validation. Baseline review found a mixed garden name and a late winter shrine visit in Tokyo. The revised prompt asks for one canonical venue per stop, morning temples/shrines/gated gardens, conservative closure-day planning, and 3–4 well-spaced stops. In the final Tokyo output those visits end by noon and venue names are separate. Runs now record the actual prompt version instead of a hardcoded value.
+
+These are individual observations, not a latency guarantee or percentile benchmark. Timing covers direct Gemini generation, parsing and domain validation; it excludes Places, persistence, API retries and client overhead. Valid structure does not establish venue existence, seasonal/holiday access, prices or current opening hours; those still need independent verification. No model speed setting or reduced token ceiling was needed. An intermediate v3 trial still scheduled two shrines late, so the prompt was tightened again before the final five-city run. Fifteen live requests were used across baseline, intermediate and final runs.
+
+### Pull request checks and main protection
+
+The repository-level `.github/workflows/pr-checks.yml` runs on every PR (including forks), pushes to main and manual dispatch. It builds API/Core tests and the smoke tool in Release, runs both test suites against an isolated PostgreSQL 18 container, uploads TRX results, and builds the Windows MAUI app in Debug on a Windows runner. No Gemini, Google Places, SMTP or production database secrets are needed; the live city tool is built but never run in CI. Local verification: 103 Core + 223 API tests passed (326 total).
+
+Antoine must enable/update main protection after the first successful workflow run: require PRs, one approving review, an up-to-date branch, and required checks named `API and Core build and tests` and `Windows MAUI build`; disallow force pushes and branch deletion. The workflow defines checks but cannot make them mandatory by itself. GitHub references: [.NET build/test](https://docs.github.com/en/actions/tutorials/build-and-test-code/net), [PostgreSQL service containers](https://docs.github.com/en/actions/tutorials/use-containerized-services/create-postgresql-service-containers).
 
 Export the exact schema without contacting Google:
 

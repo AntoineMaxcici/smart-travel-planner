@@ -6,4 +6,5 @@
 *.user
 *.log
 gemini-three-cities.json
+gemini-five-cities*.json
 gemini-response-schema.json

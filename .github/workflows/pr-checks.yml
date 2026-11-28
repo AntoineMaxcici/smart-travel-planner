@@ -1,0 +1,83 @@
+name: PR checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: API and Core build and tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ci-only-password
+          POSTGRES_DB: postgres
+        ports: [5432:5432]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # Disposable service-container credentials; tests create isolated databases.
+      TRAVELPLANNER_TEST_DATABASE: Host=localhost;Port=5432;Database=postgres;Username=postgres;Password=ci-only-password
+    defaults:
+      run:
+        working-directory: TravelPlanner
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Restore
+        run: |
+          dotnet restore TravelPlanner.Core.Tests/TravelPlanner.Core.Tests.csproj
+          dotnet restore TravelPlanner.Api.Tests/TravelPlanner.Api.Tests.csproj
+          dotnet restore tools/TravelPlanner.GeminiSmoke/TravelPlanner.GeminiSmoke.csproj
+      - name: Build
+        run: |
+          dotnet build TravelPlanner.Core.Tests/TravelPlanner.Core.Tests.csproj --configuration Release --no-restore
+          dotnet build TravelPlanner.Api.Tests/TravelPlanner.Api.Tests.csproj --configuration Release --no-restore
+          dotnet build tools/TravelPlanner.GeminiSmoke/TravelPlanner.GeminiSmoke.csproj --configuration Release --no-restore
+      - name: Test Core
+        run: dotnet test TravelPlanner.Core.Tests/TravelPlanner.Core.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=core.trx" --results-directory TestResults
+      - name: Test API with PostgreSQL
+        if: success() || failure()
+        run: dotnet test TravelPlanner.Api.Tests/TravelPlanner.Api.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=api.trx" --results-directory TestResults
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: TravelPlanner/TestResults/*.trx
+          if-no-files-found: warn
+
+  windows-app:
+    name: Windows MAUI build
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: TravelPlanner
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+      - name: Install Windows MAUI workload
+        run: dotnet workload install maui-windows
+      - name: Build Windows app
+        run: dotnet build TravelPlanner.Maui/TravelPlanner.Maui.csproj --configuration Debug --framework net9.0-windows10.0.19041.0 -p:MauiTargetFrameworks=net9.0-windows10.0.19041.0
