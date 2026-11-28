@@ -9,7 +9,7 @@ public interface IPlacesEnricher
     Task EnrichAsync(Itinerary itinerary, CancellationToken cancellationToken = default);
 }
 
-// Replace this registration when Antoine's Places integration is merged.
+// Not registered by default any more (see Places/PlacesEnricher). Kept for tests that want no enrichment.
 public sealed class NoOpPlacesEnricher : IPlacesEnricher
 {
     public Task EnrichAsync(Itinerary itinerary, CancellationToken cancellationToken = default)
